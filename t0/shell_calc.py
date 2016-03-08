@@ -134,19 +134,23 @@ def make_results_dir(d=D, sources_dir=SOURCES, results_dir=RESULTS,
                      model_space=MODEL_SPACE,
                      file_ext_regex=EXT_REGEX,
                      num_protons=NUM_PROTONS,
-                     force=False):
+                     force=False,
+                     mass_range=MASS_RANGE):
     """Copy all of the directories from the sources_dir into the results_dir
     recursively, but when encountering a *.int file, make a directory for the
     file (according to its name) and copy the file into the directory with a
     short name. Also, for each directory to which a *.int file is copied the
     given model space is linked and a *.ans file is generated.
-    :param force:
-    :param num_protons:
-    :param file_ext_regex:
-    :param model_space:
-    :param results_dir:
-    :param sources_dir:
-    :param d:
+    :param d: Main working directory
+    :param sources_dir: Directory in which source files are stored
+    :param results_dir: Directory in which results are to be generated
+    :param model_space: Name of the model space .sp file
+    :param num_protons: Z number for which to make results
+    :param file_ext_regex: Regular expression that matches interaction files
+    :param force: If true, force making of .ans file, even if one
+    already exists
+    :param mass_range: Mass range for which to create directories. If None,
+    will do for all files.
     """
     results_subdir = path.join(results_dir, 'Z%d' % num_protons)
     if not path.exists(sources_dir):
@@ -170,10 +174,12 @@ def make_results_dir(d=D, sources_dir=SOURCES, results_dir=RESULTS,
             todo_results.append(next_results)
         for ff in filter(lambda f: re.match(file_ext_regex, f) is not None,
                          files):
+            mass_num = mass_number_from_filename(ff)
+            if mass_range is not None and mass_num not in mass_range:
+                continue
             new_dir = path.join(cwd_results, _fname_without_extension(ff))
             if not path.exists(new_dir):
                 mkdir(new_dir)
-            mass_num = mass_number_from_filename(ff)
             # link .int file
             interaction_name = 'A%d' % mass_num
             interaction_file_path = path.join(new_dir,
