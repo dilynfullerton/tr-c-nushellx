@@ -43,8 +43,9 @@ MASS_RANGE = range(17, 29)
 def do_all_calculations(arange=MASS_RANGE, zrange=list([NUM_PROTONS]),
                         **kwargs):
     for z in zrange:
-        make_results_dir(num_protons=z, **kwargs)
-        make_usdb_dir(mass_range=arange, num_protons=z, **kwargs)
+        arange0 = list(filter(lambda a: a >= z, arange))
+        make_results_dir(mass_range=arange0, num_protons=z, **kwargs)
+        make_usdb_dir(mass_range=arange0, num_protons=z, **kwargs)
     return do_calculations(**kwargs)
 
 
@@ -152,6 +153,8 @@ def make_results_dir(d=D, sources_dir=SOURCES, results_dir=RESULTS,
     :param mass_range: Mass range for which to create directories. If None,
     will do for all files.
     """
+    mass_range = list(filter(lambda a: a >= num_protons, mass_range))
+
     results_subdir = path.join(results_dir, 'Z%d' % num_protons)
     if not path.exists(sources_dir):
         raise SourcesDirDoesNotExistException()
@@ -175,8 +178,7 @@ def make_results_dir(d=D, sources_dir=SOURCES, results_dir=RESULTS,
         for ff in filter(lambda f: re.match(file_ext_regex, f) is not None,
                          files):
             mass_num = mass_number_from_filename(ff)
-            if mass_range is not None and (mass_num not in mass_range or
-                                           mass_num < num_protons):
+            if mass_range is not None and mass_num not in mass_range:
                 continue
             new_dir = path.join(cwd_results, _fname_without_extension(ff))
             if not path.exists(new_dir):
