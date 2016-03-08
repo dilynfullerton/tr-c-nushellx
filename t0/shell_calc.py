@@ -175,7 +175,8 @@ def make_results_dir(d=D, sources_dir=SOURCES, results_dir=RESULTS,
         for ff in filter(lambda f: re.match(file_ext_regex, f) is not None,
                          files):
             mass_num = mass_number_from_filename(ff)
-            if mass_range is not None and mass_num not in mass_range:
+            if mass_range is not None and (mass_num not in mass_range or
+                                           mass_num < num_protons):
                 continue
             new_dir = path.join(cwd_results, _fname_without_extension(ff))
             if not path.exists(new_dir):
@@ -304,7 +305,7 @@ def make_ans_file(file_path,
 
 def main():
     do_all_calculations(
-        arange=range(4, 20),
+        arange=range(4, 7),
         zrange=[4, 5, 6],
         force=False
     )
