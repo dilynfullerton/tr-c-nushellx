@@ -43,31 +43,51 @@ def do_all_calculations(arange, zrange, **kwargs):
         arange0 = list(filter(lambda a: a >= z, arange))
         make_results_dir(a_range=arange0, z=z, **kwargs)
         make_usdb_dir(a_range=arange0, z=z, **kwargs)
-    return do_calculations(**kwargs)
+    return do_calculations(a_range=arange0, **kwargs)
 
 
-def do_calculations(d=DPATH_MAIN,
+def do_calculations(a_range,
+                    d=DPATH_MAIN,
                     dirpath_results=DPATH_RESULTS,
                     regex_ans=RGX_ANS,
                     regex_bat=RGX_BAT,
+                    regex_int=RGX_INT,
                     force=False):
     for root, dirs, files in walk(dirpath_results):
-        ans = _get_file(files, regex_ans)
-        bat = _get_file(files, regex_bat)
-        if ans is not None:  # There is a *.ans file
-            if bat is None or force:
+        # if the mass number is not in the range, do not do calculation
+        fname_int = _get_file(files, regex_int)
+        if fname_int is None:
+            continue
+        else:
+            a = mass_number_from_filename(filename=fname_int)
+            if a_range is None or a not in a_range:
+                continue
+        # do shell calculation
+        fname_ans = _get_file(files, regex_ans)
+        fname_bat = _get_file(files, regex_bat)
+        if fname_ans is not None:  # There is a *.ans file
+            if fname_bat is None or force:
                 chdir(root)
-                call(['shell', '%s' % ans])
+                call(['shell', '%s' % fname_ans])
     chdir(d)
     for root, dirs, files in walk(dirpath_results):
-        bat = _get_file(files, regex_bat)
-        if bat is not None:
+        # if the mass number is not in the range, do not do calculation
+        fname_int = _get_file(files, regex_int)
+        if fname_int is None:
+            continue
+        else:
+            a = mass_number_from_filename(filename=fname_int)
+            if a_range is None or a not in a_range:
+                continue
+        # do bat calculation
+        fname_bat = _get_file(files, regex_bat)
+        if fname_bat is not None:
             if not _calc_has_been_done(root) or force is True:
                 chdir(root)
                 try:
-                    call(['source', '%s' % bat])
+                    call(['source', '%s' % fname_bat])
                 except OSError:
-                    call(['source %s' % bat], shell=True)
+                    call(['source %s' % fname_bat], shell=True)
     chdir(d)
     return 1
 
@@ -79,8 +99,9 @@ def _calc_has_been_done(dirpath):
 def files_with_ext_in_directory(dirpath, extension):
     """Returns a list of the filenames of all the files_INT in the given
     directory with the given extension
-    :param extension:
-    :param dirpath: """
+    :param extension: file extension
+    :param dirpath: path to directory
+    """
     return list(glob.glob(path.join(dirpath, '*' + extension)))
 
 
@@ -274,22 +295,22 @@ def make_ans_file(file_path,
                   sep=SEP,
                   nl='\n'):
     """Create a .ans file with the given specifications
-    :param nl:
-    :param sep:
-    :param lines:
-    :param end_option:
-    :param parity:
-    :param j_del:
-    :param j_max:
-    :param j_min:
-    :param num_protons:
-    :param restriction:
-    :param neig:
-    :param option:
-    :param interaction_name:
-    :param num_nucleons:
-    :param sp_file:
-    :param file_path:
+    :param nl: line separator
+    :param sep: execution separator
+    :param lines: list of unformatted file lines
+    :param end_option: final option to execute
+    :param parity: parity
+    :param j_del: difference between angular momentum values
+    :param j_max: maximum j
+    :param j_min: minimum j
+    :param num_protons: proton number (z)
+    :param restriction: restrictions?
+    :param neig: something
+    :param option: regular execution option
+    :param interaction_name: name of interaction file
+    :param num_nucleons: number of nucleons (A)
+    :param sp_file: model space file name
+    :param file_path: path to ans file
     """
     ans_str = nl.join(lines) % (sep,
                                 option, neig,
