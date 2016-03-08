@@ -23,45 +23,44 @@ LINES = ['%s',
 NUM_PROTONS = 8
 
 # directories
-D = getcwd()
-SOURCES = path.join(D, 'sources')
-RESULTS = path.join(D, 'results')
-DIRNAME_USDB = 'usdb'
-MODEL_SPACE = 'imsrg'
-MODEL_SPACE_USDB = 'sd'
+DPATH_MAIN = getcwd()
+DPATH_SOURCES = path.join(DPATH_MAIN, 'sources')
+DPATH_RESULTS = path.join(DPATH_MAIN, 'results')
+DNAME_USDB = 'usdb'
+FNAME_MODEL_SPACE = 'imsrg'
+FNAME_MODEL_SPACE_USDB = 'sd'
 
 # file parsing
-MASS_REGEX = 'A\d+'
-FILENAME_SPLIT = '_'
-EXT_REGEX = '.*int'
-ANS_REGEX = '.*ans'
-BAT_REGEX = MASS_REGEX + '\.bat'
-
-MASS_RANGE = range(17, 29)
+RGX_MASS_NUM = 'A\d+'
+CHR_FILENAME_SPLIT = '_'
+RGX_INT = '.*int'
+RGX_ANS = '.*ans'
+RGX_BAT = RGX_MASS_NUM + '\.bat'
 
 
-def do_all_calculations(arange=MASS_RANGE, zrange=list([NUM_PROTONS]),
-                        **kwargs):
+def do_all_calculations(arange, zrange, **kwargs):
     for z in zrange:
         arange0 = list(filter(lambda a: a >= z, arange))
-        make_results_dir(mass_range=arange0, num_protons=z, **kwargs)
-        make_usdb_dir(mass_range=arange0, num_protons=z, **kwargs)
+        make_results_dir(a_range=arange0, z=z, **kwargs)
+        make_usdb_dir(a_range=arange0, z=z, **kwargs)
     return do_calculations(**kwargs)
 
 
-def do_calculations(d=D, results_dir=RESULTS,
-                    ans_regex=ANS_REGEX, bat_regex=BAT_REGEX,
+def do_calculations(d=DPATH_MAIN,
+                    dirpath_results=DPATH_RESULTS,
+                    regex_ans=RGX_ANS,
+                    regex_bat=RGX_BAT,
                     force=False):
-    for root, dirs, files in walk(results_dir):
-        ans = _get_file(files, ans_regex)
-        bat = _get_file(files, bat_regex)
+    for root, dirs, files in walk(dirpath_results):
+        ans = _get_file(files, regex_ans)
+        bat = _get_file(files, regex_bat)
         if ans is not None:  # There is a *.ans file
             if bat is None or force:
                 chdir(root)
                 call(['shell', '%s' % ans])
     chdir(d)
-    for root, dirs, files in walk(results_dir):
-        bat = _get_file(files, bat_regex)
+    for root, dirs, files in walk(dirpath_results):
+        bat = _get_file(files, regex_bat)
         if bat is not None:
             if not _calc_has_been_done(root) or force is True:
                 chdir(root)
@@ -77,38 +76,39 @@ def _calc_has_been_done(dirpath):
     return len(files_with_ext_in_directory(dirpath, '.lpt')) > 1
 
 
-def files_with_ext_in_directory(directory, extension):
+def files_with_ext_in_directory(dirpath, extension):
     """Returns a list of the filenames of all the files_INT in the given
     directory with the given extension
     :param extension:
-    :param directory: """
-    return list(glob.glob(path.join(directory, '*' + extension)))
+    :param dirpath: """
+    return list(glob.glob(path.join(dirpath, '*' + extension)))
 
 
-def _get_file(list_of_file, regex=ANS_REGEX):
-    for f in list_of_file:
+def _get_file(list_of_fname, regex=RGX_ANS):
+    for f in list_of_fname:
         if re.match(regex, f) is not None:
             return f
     else:
         return None
 
 
-def make_usdb_dir(mass_range=MASS_RANGE, d=D, results_dir=RESULTS,
-                  model_space=MODEL_SPACE_USDB,
-                  num_protons=NUM_PROTONS,
-                  usdb_dirname=DIRNAME_USDB,
+def make_usdb_dir(a_range, z,
+                  d=DPATH_MAIN,
+                  dirpath_results=DPATH_RESULTS,
+                  dirname_usdb=DNAME_USDB,
+                  fname_model_space=FNAME_MODEL_SPACE_USDB,
                   force=False):
-    mass_range = list(filter(lambda a: a >= num_protons, mass_range))
-    results_subdir = path.join(results_dir, 'Z%d' % num_protons)
-    usdb_dirpath = path.join(results_subdir, usdb_dirname)
+    a_range = list(filter(lambda a: a >= z, a_range))
+    results_subdir = path.join(dirpath_results, 'Z%d' % z)
+    usdb_dirpath = path.join(results_subdir, dirname_usdb)
     if not path.exists(usdb_dirpath):
         mkdir(usdb_dirpath)
-    for mass_num in mass_range:
+    for mass_num in a_range:
         dirname = path.join(usdb_dirpath, 'A%d' % mass_num)
         if not path.exists(dirname):
             mkdir(dirname)
         # link .sp file
-        sp_filename = '%s.sp' % model_space
+        sp_filename = '%s.sp' % fname_model_space
         sp_file_path = path.join(dirname, sp_filename)
         if not path.exists(sp_file_path):
             link(path.join(d, sp_filename), sp_file_path)
@@ -118,50 +118,51 @@ def make_usdb_dir(mass_range=MASS_RANGE, d=D, results_dir=RESULTS,
         if not path.exists(ans_file_path) or force is True:
             if mass_num % 2 == 0:  # even
                 make_ans_file(file_path=ans_file_path,
-                              sp_file=model_space,
+                              sp_file=fname_model_space,
                               num_nucleons=mass_num,
                               interaction_name='usdb',
-                              num_protons=num_protons)
+                              num_protons=z)
             else:
                 make_ans_file(file_path=ans_file_path,
-                              sp_file=model_space,
+                              sp_file=fname_model_space,
                               num_nucleons=mass_num,
                               interaction_name='usdb',
-                              num_protons=num_protons,
+                              num_protons=z,
                               j_min=0.5, j_max=3.5, j_del=1.0)
 
 
-def make_results_dir(d=D, sources_dir=SOURCES, results_dir=RESULTS,
-                     model_space=MODEL_SPACE,
-                     file_ext_regex=EXT_REGEX,
-                     num_protons=NUM_PROTONS,
-                     force=False,
-                     mass_range=MASS_RANGE):
+def make_results_dir(a_range, z,
+                     d=DPATH_MAIN,
+                     dirpath_sources=DPATH_SOURCES,
+                     dirpath_results=DPATH_RESULTS,
+                     fname_model_space=FNAME_MODEL_SPACE,
+                     regex_int=RGX_INT,
+                     force=False):
     """Copy all of the directories from the sources_dir into the results_dir
     recursively, but when encountering a *.int file, make a directory for the
     file (according to its name) and copy the file into the directory with a
     short name. Also, for each directory to which a *.int file is copied the
     given model space is linked and a *.ans file is generated.
     :param d: Main working directory
-    :param sources_dir: Directory in which source files are stored
-    :param results_dir: Directory in which results are to be generated
-    :param model_space: Name of the model space .sp file
-    :param num_protons: Z number for which to make results
-    :param file_ext_regex: Regular expression that matches interaction files
+    :param dirpath_sources: Directory in which source files are stored
+    :param dirpath_results: Directory in which results are to be generated
+    :param fname_model_space: Name of the model space .sp file
+    :param z: Z number for which to make results
+    :param regex_int: Regular expression that matches interaction files
     :param force: If true, force making of .ans file, even if one
     already exists
-    :param mass_range: Mass range for which to create directories. If None,
+    :param a_range: Mass range for which to create directories. If None,
     will do for all files.
     """
-    mass_range = list(filter(lambda a: a >= num_protons, mass_range))
+    a_range = list(filter(lambda a: a >= z, a_range))
 
-    results_subdir = path.join(results_dir, 'Z%d' % num_protons)
-    if not path.exists(sources_dir):
+    results_subdir = path.join(dirpath_results, 'Z%d' % z)
+    if not path.exists(dirpath_sources):
         raise SourcesDirDoesNotExistException()
     if not path.exists(results_subdir):
         mkdir(results_subdir)
 
-    todo_sources = deque([sources_dir])
+    todo_sources = deque([dirpath_sources])
     todo_results = deque([results_subdir])
 
     while len(todo_sources) > 0:
@@ -175,10 +176,10 @@ def make_results_dir(d=D, sources_dir=SOURCES, results_dir=RESULTS,
                 mkdir(next_results)
             todo_sources.append(next_sources)
             todo_results.append(next_results)
-        for ff in filter(lambda f: re.match(file_ext_regex, f) is not None,
+        for ff in filter(lambda f: re.match(regex_int, f) is not None,
                          files):
             mass_num = mass_number_from_filename(ff)
-            if mass_range is not None and mass_num not in mass_range:
+            if a_range is not None and mass_num not in a_range:
                 continue
             new_dir = path.join(cwd_results, _fname_without_extension(ff))
             if not path.exists(new_dir):
@@ -190,7 +191,7 @@ def make_results_dir(d=D, sources_dir=SOURCES, results_dir=RESULTS,
             if not path.exists(interaction_file_path):
                 link(path.join(cwd_sources, ff), interaction_file_path)
             # link .sd file
-            sp_filename = '%s.sp' % model_space
+            sp_filename = '%s.sp' % fname_model_space
             sp_file_path = path.join(new_dir, sp_filename)
             if not path.exists(sp_file_path):
                 link(path.join(d, sp_filename), sp_file_path)
@@ -201,42 +202,43 @@ def make_results_dir(d=D, sources_dir=SOURCES, results_dir=RESULTS,
                 if mass_num % 2 == 0:  # even
                     make_ans_file(file_path=ans_file_path,
                                   option='lpe', neig=0,
-                                  sp_file=model_space,
+                                  sp_file=fname_model_space,
                                   restriction='n',
                                   interaction_name=interaction_name,
-                                  num_protons=num_protons,
+                                  num_protons=z,
                                   num_nucleons=mass_num,
                                   j_min=0.0, j_max=4.0, j_del=1.0,
                                   parity=0)
                 else:
                     make_ans_file(file_path=ans_file_path,
                                   option='lpe', neig=0,
-                                  sp_file=model_space,
+                                  sp_file=fname_model_space,
                                   restriction='n',
                                   interaction_name=interaction_name,
-                                  num_protons=num_protons,
+                                  num_protons=z,
                                   num_nucleons=mass_num,
                                   j_min=0.5, j_max=3.5, j_del=1.0,
                                   parity=0)
 
 
-def mass_number_from_filename(filename, split_char=FILENAME_SPLIT,
-                              mass_regex=MASS_REGEX):
+def mass_number_from_filename(filename,
+                              split_char=CHR_FILENAME_SPLIT,
+                              regex_mass_num=RGX_MASS_NUM):
     filename_elts = reversed(_filename_elts_list(filename, split_char))
-    mass = _elt_from_felts(filename_elts, mass_regex)
+    mass = _elt_from_felts(filename_elts, regex_mass_num)
     if mass is not None:
         return int(mass[1:])
     else:
         return None
 
 
-def _filename_elts_list(filename, split_char):
-    ext_index = filename.rfind('.')
-    dir_index = filename.rfind('/')
+def _filename_elts_list(fname, split_char):
+    ext_index = fname.rfind('.')
+    dir_index = fname.rfind('/')
     if dir_index != -1:
-        filename_woext = filename[dir_index:ext_index]
+        filename_woext = fname[dir_index:ext_index]
     else:
-        filename_woext = filename[:ext_index]
+        filename_woext = fname[:ext_index]
     return filename_woext.split(split_char)
 
 
