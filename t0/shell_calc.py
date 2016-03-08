@@ -1,3 +1,4 @@
+#!/usr/bin/python
 from __future__ import division
 from collections import deque
 from os import getcwd, path, walk, mkdir, link, chdir
@@ -96,6 +97,7 @@ def make_usdb_dir(mass_range=MASS_RANGE, d=D, results_dir=RESULTS,
                   num_protons=NUM_PROTONS,
                   usdb_dirname=DIRNAME_USDB,
                   force=False):
+    mass_range = list(filter(lambda a: a >= num_protons, mass_range))
     results_subdir = path.join(results_dir, 'Z%d' % num_protons)
     usdb_dirpath = path.join(results_subdir, usdb_dirname)
     if not path.exists(usdb_dirpath):
@@ -302,4 +304,5 @@ def main():
     )
 
 
-main()
+if __name__ == "__main__":
+    main()
