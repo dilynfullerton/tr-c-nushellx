@@ -3,24 +3,28 @@
 
 To run as a script:
 
-    $ shell_calc.py [-[Ff]] Amin [Amax] Zmin [Zmax]
+    $ shell_calc.py [-[Ff]] [[p]n] Amin [Amax] Zmin [Zmax]
 
 For each valid (A, Z) pair in the range defined by [Amin, Amax] x [Zmin, Zmax],
 where [.,.] signifies an inclusive interval over the positive integers,
 runs the nushellx shell calculation for each matching interaction file in
 SOURCE directory as well as usdb.
 
-If 2 arguments are given, assumes these are Amin Zmin.
+If -F or -f precedes the arguments, forces recalculation even if outfiles
+    already exist in the RESULTS directory.
+If the first argument given is 'pn', uses a proton-neutron model space.
+    Else if it is 'n', uses a neutron only model space. If the first
+    argument is not 'n' or 'pn', assumes a proton-neutron model space by
+    default.
+If 2 (additional) arguments are given, assumes these are Amin Zmin.
     Calculation range = {(Amin, Zmin)}, if Amin >= Zmin and Amin, Zmin are
     positive integers.
-If 3 arguments are given, assumes these are Amin Amax Zmin.
+If 3 (additional) arguments are given, assumes these are Amin Amax Zmin.
     Calculation range = the set of (A, Z) in [Amin, Amax] x [Zmin],
     where A >= Z and A, Z are positive integers.
-If 4 arguments are given, assumes these are Amin Amax Zmin Zmax.
+If 4 (additional) arguments are given, assumes these are Amin Amax Zmin Zmax.
     Calculation range = set of (A, Z) in [Amin, Amax] x [Zmin, Zmax],
     where A >= Z and A, Z are positive integers.
-If -F or -f precedes the arguments, forces recalculation even if outfiles
-already exist in the RESULTS directory.
 """
 from __future__ import division
 from collections import deque
@@ -50,35 +54,86 @@ NUM_PROTONS = 8
 DPATH_MAIN = getcwd()
 DPATH_SOURCES = path.join(DPATH_MAIN, 'sources')
 DPATH_RESULTS = path.join(DPATH_MAIN, 'results')
+DNAME_FMT_Z = 'Z%d'
 DNAME_USDB = 'usdb'
-FNAME_MODEL_SPACE = 'imsrg'
+FNAME_MODEL_SPACE_P_N = 'tmp-p-n'
+FNAME_MODEL_SPACE_P_PN = 'tmp-p-pn'
+FNAME_MODEL_SPACE_SD_N = 'tmp-sd-n'
+FNAME_MODEL_SPACE_SD_PN = 'tmp-sd-pn'
 FNAME_MODEL_SPACE_USDB = 'sd'
 
 # file parsing
 RGX_MASS_NUM = 'A\d+'
 CHR_FILENAME_SPLIT = '_'
-RGX_INT = '.*int'
-RGX_ANS = '.*ans'
-RGX_BAT = RGX_MASS_NUM + '\.bat'
+RGX_FNAME_INT = '.*\.int'
+RGX_FNAME_ANS = '.*\.ans'
+RGX_FNAME_BAT = RGX_MASS_NUM + '\.bat'
+
+# shells
+S_SHELL = frozenset(range(1, 4))
+P_SHELL = frozenset(range(4, 16))
+SD_SHELL = frozenset(range(16, 40))
+MAP_SHELL_TO_MODEL_SPACES = {
+    P_SHELL: (FNAME_MODEL_SPACE_P_N, FNAME_MODEL_SPACE_P_PN),
+    SD_SHELL: (FNAME_MODEL_SPACE_SD_N, FNAME_MODEL_SPACE_SD_PN)
+}
 
 
-def do_all_calculations(arange, zrange, **kwargs):
+def get_model_space(a, proton_neutron=True,
+                    shell_sp_map=MAP_SHELL_TO_MODEL_SPACES,):
+    """Returns the filename of the model space associated with the given
+    mass number
+
+    :param a: Mass number
+    :param proton_neutron: If True, assume a 2-component space (protons and
+    neutrons), else assume a 1-component space (neutrons only)
+    :param shell_sp_map: Map from shell to model space filename
+    :return: Filename associated with the given A value
+    :raises: NoAvailableModelSpaceException if there is no model space
+    file for the given A value
+    """
+    for shell, sp in shell_sp_map.iteritems():
+        if a in shell:
+            if not proton_neutron:
+                return sp[0]
+            else:
+                return sp[1]
+    else:
+        if proton_neutron:
+            s = 'pn'
+        else:
+            s = 'n'
+        raise NoAvailableModelSpaceException(
+            'No %s model space available for A = %d' % (s, a)
+        )
+
+
+class NoAvailableModelSpaceException(Exception):
+    pass
+
+
+def do_all_calculations(arange, zrange, proton_neutron=True,
+                        dirpath_results=DPATH_RESULTS, **kwargs):
     zrange = list(filter(lambda z: z >= 1, zrange))
     for z in zrange:
         arange0 = list(filter(lambda a: a >= z, arange))
-        make_results_dir(a_range=arange0, z=z, **kwargs)
+        make_results_dir(a_range=arange0, z=z,
+                         pn=proton_neutron, **kwargs)
         make_usdb_dir(a_range=arange0, z=z, **kwargs)
-        do_calculations(a_range=arange0, **kwargs)
+        remove_empty_directories(dirpath_results, remove_root=False)
+        do_calculations(a_range=arange0, z=z, **kwargs)
 
 
-def do_calculations(a_range,
+def do_calculations(a_range, z,
                     d=DPATH_MAIN,
                     dirpath_results=DPATH_RESULTS,
-                    regex_ans=RGX_ANS,
-                    regex_bat=RGX_BAT,
-                    regex_int=RGX_INT,
+                    dirname_fmt_z=DNAME_FMT_Z,
+                    regex_ans=RGX_FNAME_ANS,
+                    regex_bat=RGX_FNAME_BAT,
+                    regex_int=RGX_FNAME_INT,
                     force=False):
-    for root, dirs, files in walk(dirpath_results):
+    for root, dirs, files in walk(path.join(dirpath_results,
+                                            dirname_fmt_z % z)):
         # if the mass number is not in the range, do not do calculation
         fname_int = _get_file(files, regex_int)
         if fname_int is None:
@@ -94,6 +149,8 @@ def do_calculations(a_range,
             if fname_bat is None or force:
                 chdir(root)
                 call(['shell', '%s' % fname_ans])
+        # update files list
+        files = listdir(root)
         # do bat calculation
         fname_bat = _get_file(files, regex_bat)
         if fname_bat is not None:
@@ -104,7 +161,6 @@ def do_calculations(a_range,
                 except OSError:
                     call(['source %s' % fname_bat], shell=True)
     chdir(d)
-    remove_empty_directories(dirpath_results, remove_root=False)
     return 1
 
 
@@ -121,7 +177,7 @@ def files_with_ext_in_directory(dirpath, extension):
     return list(glob.glob(path.join(dirpath, '*' + extension)))
 
 
-def _get_file(list_of_fname, regex=RGX_ANS):
+def _get_file(list_of_fname, regex=RGX_FNAME_ANS):
     for f in list_of_fname:
         if re.match(regex, f) is not None:
             return f
@@ -130,6 +186,7 @@ def _get_file(list_of_fname, regex=RGX_ANS):
 
 
 def make_usdb_dir(a_range, z,
+                  usdb_arange=SD_SHELL,
                   d=DPATH_MAIN,
                   dirpath_results=DPATH_RESULTS,
                   dirname_usdb=DNAME_USDB,
@@ -141,6 +198,8 @@ def make_usdb_dir(a_range, z,
     if not path.exists(usdb_dirpath):
         mkdir(usdb_dirpath)
     for mass_num in a_range:
+        if mass_num not in usdb_arange:
+            continue
         dirname = path.join(usdb_dirpath, 'A%d' % mass_num)
         if not path.exists(dirname):
             mkdir(dirname)
@@ -168,32 +227,35 @@ def make_usdb_dir(a_range, z,
                               j_min=0.5, j_max=3.5, j_del=1.0)
 
 
-def make_results_dir(a_range, z,
+def make_results_dir(a_range, z, pn,
                      d=DPATH_MAIN,
                      dirpath_sources=DPATH_SOURCES,
                      dirpath_results=DPATH_RESULTS,
-                     fname_model_space=FNAME_MODEL_SPACE,
-                     regex_int=RGX_INT,
+                     dname_fmt_z=DNAME_FMT_Z,
+                     regex_int=RGX_FNAME_INT,
                      force=False):
     """Copy all of the directories from the sources_dir into the results_dir
     recursively, but when encountering a *.int file, make a directory for the
     file (according to its name) and copy the file into the directory with a
     short name. Also, for each directory to which a *.int file is copied the
     given model space is linked and a *.ans file is generated.
+    :param a_range: Mass range for which to create directories. If None,
+    will do for all files.
+    :param z: Z number for which to make results
+    :param pn: If True, assumes two component (proton, neutron)
+    system, else assumes one component (neutron only) system
     :param d: Main working directory
     :param dirpath_sources: Directory in which source files are stored
     :param dirpath_results: Directory in which results are to be generated
-    :param fname_model_space: Name of the model space .sp file
-    :param z: Z number for which to make results
+    :param dname_fmt_z: Results subdirectory name template that takes the
+    proton number (and integer) as its sole argument
     :param regex_int: Regular expression that matches interaction files
     :param force: If true, force making of .ans file, even if one
     already exists
-    :param a_range: Mass range for which to create directories. If None,
-    will do for all files.
     """
     a_range = list(filter(lambda a: a >= z, a_range))
 
-    results_subdir = path.join(dirpath_results, 'Z%d' % z)
+    results_subdir = path.join(dirpath_results, dname_fmt_z % z)
     if not path.exists(dirpath_sources):
         raise SourcesDirDoesNotExistException()
     if not path.exists(results_subdir):
@@ -227,7 +289,10 @@ def make_results_dir(a_range, z,
                                               interaction_name + '.int')
             if not path.exists(interaction_file_path):
                 link(path.join(cwd_sources, ff), interaction_file_path)
-            # link .sd file
+            # link .sp file
+            fname_model_space = get_model_space(
+                a=mass_num,
+                proton_neutron=pn)
             sp_filename = '%s.sp' % fname_model_space
             sp_file_path = path.join(new_dir, sp_filename)
             if not path.exists(sp_file_path):
@@ -365,21 +430,32 @@ if __name__ == "__main__":
     else:
         force = False
         user_args = argv[1:]
+    if 'n' in user_args[0]:
+        if 'pn' in user_args[0]:
+            proton_neutron = True
+        else:
+            proton_neutron = False
+        user_args = user_args[1:]
+    else:
+        proton_neutron = True
     if len(user_args) == 2:
         a, z = [int(x) for x in user_args[:2]]
         arange = range(a, a+1)
         zrange = range(z, z+1)
-        do_all_calculations(arange=arange, zrange=zrange, force=force)
+        do_all_calculations(arange=arange, zrange=zrange,
+                            proton_neutron=proton_neutron, force=force)
     elif len(user_args) == 3:
         amin, amax, z = [int(x) for x in user_args[:3]]
         arange = range(amin, amax+1)
         zrange = range(z, z+1)
-        do_all_calculations(arange=arange, zrange=zrange, force=force)
+        do_all_calculations(arange=arange, zrange=zrange,
+                            proton_neutron=proton_neutron, force=force)
     elif len(user_args) == 4:
         amin, amax, zmin, zmax = [int(x) for x in user_args[:4]]
         arange = range(amin, amax+1)
         zrange = range(zmin, zmax+1)
-        do_all_calculations(arange=arange, zrange=zrange, force=force)
+        do_all_calculations(arange=arange, zrange=zrange,
+                            proton_neutron=proton_neutron, force=force)
     else:
         print ('User entered %d arguments. ' % (len(user_args),) +
-               'shell_calc.py requires 2-4 arguments.')
+               'shell_calc.py requires 2-5 arguments.')
