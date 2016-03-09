@@ -3,7 +3,7 @@
 
 To run as a script:
 
-    $ shell_calc.py [-[Ff]] [Amin [Amax]] Zmin [Zmax]
+    $ shell_calc.py [-[Ff]] Amin [Amax] Zmin [Zmax]
 
 For each valid (A, Z) pair in the range defined by [Amin, Amax] x [Zmin, Zmax],
 where [.,.] signifies an inclusive interval over the positive integers,
@@ -359,6 +359,8 @@ if __name__ == "__main__":
     if '-' in argv[1]:
         if 'f' in argv[1] or 'F' in argv[1]:
             force = True
+        else:
+            force = False
         user_args = argv[2:]
     else:
         force = False
