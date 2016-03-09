@@ -1,7 +1,7 @@
 #!/usr/bin/python
 from __future__ import division
 from collections import deque
-from os import getcwd, path, walk, mkdir, link, chdir
+from os import getcwd, path, walk, mkdir, link, chdir, rmdir, listdir
 from subprocess import call
 import re
 import glob
@@ -89,6 +89,7 @@ def do_calculations(a_range,
                 except OSError:
                     call(['source %s' % fname_bat], shell=True)
     chdir(d)
+    remove_empty_directories(dirpath_results, remove_root=False)
     return 1
 
 
@@ -326,6 +327,17 @@ def make_ans_file(file_path,
     f = open(file_path, 'w')
     f.writelines(ans_str)
     f.close()
+
+
+def remove_empty_directories(root, remove_root=False):
+    item_names = listdir(root)
+    item_paths = [path.join(root, item) for item in item_names]
+    subdir_paths = list(filter(lambda x: path.isdir(x), item_paths))
+    for sd in subdir_paths:
+        remove_empty_directories(root=sd, remove_root=True)
+    item_names = listdir(root)
+    if len(item_names) == 0 and remove_root:
+        rmdir(root)
 
 
 def main():
