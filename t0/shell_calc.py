@@ -43,7 +43,7 @@ def do_all_calculations(arange, zrange, **kwargs):
         arange0 = list(filter(lambda a: a >= z, arange))
         make_results_dir(a_range=arange0, z=z, **kwargs)
         make_usdb_dir(a_range=arange0, z=z, **kwargs)
-    return do_calculations(a_range=arange0, **kwargs)
+        do_calculations(a_range=arange0, **kwargs)
 
 
 def do_calculations(a_range,
