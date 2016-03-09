@@ -114,7 +114,7 @@ class NoAvailableModelSpaceException(Exception):
 
 def do_all_calculations(arange, zrange, proton_neutron=True,
                         dirpath_results=DPATH_RESULTS, **kwargs):
-    zrange = list(filter(lambda z: z >= 1, zrange))
+    zrange = list(filter(lambda z0: z0 >= 1, zrange))
     for z in zrange:
         arange0 = list(filter(lambda a: a >= z, arange))
         make_results_dir(a_range=arange0, z=z,
@@ -412,7 +412,7 @@ def make_ans_file(file_path,
 def remove_empty_directories(root, remove_root=False):
     item_names = listdir(root)
     item_paths = [path.join(root, item) for item in item_names]
-    subdir_paths = list(filter(lambda x: path.isdir(x), item_paths))
+    subdir_paths = list(filter(lambda p: path.isdir(p), item_paths))
     for sd in subdir_paths:
         remove_empty_directories(root=sd, remove_root=True)
     item_names = listdir(root)
@@ -423,39 +423,39 @@ def remove_empty_directories(root, remove_root=False):
 if __name__ == "__main__":
     if '-' in argv[1]:
         if 'f' in argv[1] or 'F' in argv[1]:
-            force = True
+            force0 = True
         else:
-            force = False
+            force0 = False
         user_args = argv[2:]
     else:
-        force = False
+        force0 = False
         user_args = argv[1:]
     if 'n' in user_args[0]:
         if 'pn' in user_args[0]:
-            proton_neutron = True
+            pn0 = True
         else:
-            proton_neutron = False
+            pn0 = False
         user_args = user_args[1:]
     else:
-        proton_neutron = True
+        pn0 = True
     if len(user_args) == 2:
-        a, z = [int(x) for x in user_args[:2]]
-        arange = range(a, a+1)
-        zrange = range(z, z+1)
-        do_all_calculations(arange=arange, zrange=zrange,
-                            proton_neutron=proton_neutron, force=force)
+        amin, zmin = [int(x) for x in user_args[:2]]
+        a_range0 = range(amin, amin + 1)
+        z_range0 = range(zmin, zmin + 1)
+        do_all_calculations(arange=a_range0, zrange=z_range0,
+                            proton_neutron=pn0, force=force0)
     elif len(user_args) == 3:
-        amin, amax, z = [int(x) for x in user_args[:3]]
-        arange = range(amin, amax+1)
-        zrange = range(z, z+1)
-        do_all_calculations(arange=arange, zrange=zrange,
-                            proton_neutron=proton_neutron, force=force)
+        amin, amax, zmin = [int(x) for x in user_args[:3]]
+        a_range0 = range(amin, amax + 1)
+        z_range0 = range(zmin, zmin + 1)
+        do_all_calculations(arange=a_range0, zrange=z_range0,
+                            proton_neutron=pn0, force=force0)
     elif len(user_args) == 4:
         amin, amax, zmin, zmax = [int(x) for x in user_args[:4]]
-        arange = range(amin, amax+1)
-        zrange = range(zmin, zmax+1)
-        do_all_calculations(arange=arange, zrange=zrange,
-                            proton_neutron=proton_neutron, force=force)
+        a_range0 = range(amin, amax + 1)
+        z_range0 = range(zmin, zmax + 1)
+        do_all_calculations(arange=a_range0, zrange=z_range0,
+                            proton_neutron=pn0, force=force0)
     else:
         print ('User entered %d arguments. ' % (len(user_args),) +
                'shell_calc.py requires 2-5 arguments.')
