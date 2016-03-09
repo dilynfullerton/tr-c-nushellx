@@ -3,13 +3,22 @@
 
 To run as a script:
 
-    $ shell_calc.py [-[Ff]] Amin Amax Zmin Zmax
+    $ shell_calc.py [-[Ff]] [Amin [Amax]] Zmin [Zmax]
 
 For each valid (A, Z) pair in the range defined by [Amin, Amax] x [Zmin, Zmax],
 where [.,.] signifies an inclusive interval over the positive integers,
 runs the nushellx shell calculation for each matching interaction file in
 SOURCE directory as well as usdb.
 
+If 2 arguments are given, assumes these are Amin Zmin.
+    Calculation range = {(Amin, Zmin)}, if Amin >= Zmin and Amin, Zmin are
+    positive integers.
+If 3 arguments are given, assumes these are Amin Amax Zmin.
+    Calculation range = the set of (A, Z) in [Amin, Amax] x [Zmin],
+    where A >= Z and A, Z are positive integers.
+If 4 arguments are given, assumes these are Amin Amax Zmin Zmax.
+    Calculation range = set of (A, Z) in [Amin, Amax] x [Zmin, Zmax],
+    where A >= Z and A, Z are positive integers.
 If -F or -f precedes the arguments, forces recalculation even if outfiles
 already exist in the RESULTS directory.
 """
@@ -54,6 +63,7 @@ RGX_BAT = RGX_MASS_NUM + '\.bat'
 
 
 def do_all_calculations(arange, zrange, **kwargs):
+    zrange = list(filter(lambda z: z >= 1, zrange))
     for z in zrange:
         arange0 = list(filter(lambda a: a >= z, arange))
         make_results_dir(a_range=arange0, z=z, **kwargs)
@@ -75,7 +85,7 @@ def do_calculations(a_range,
             continue
         else:
             a = mass_number_from_filename(filename=fname_int)
-            if a_range is None or a not in a_range:
+            if a not in a_range:
                 continue
         # do shell calculation
         fname_ans = _get_file(files, regex_ans)
@@ -353,13 +363,21 @@ if __name__ == "__main__":
     else:
         force = False
         user_args = argv[1:]
-    if len(user_args) == 4:
-        amin, amax = user_args[:2]
-        arange = range(int(amin), int(amax)+1)
-        zmin, zmax = user_args[2:4]
-        zrange = range(int(zmin), int(zmax)+1)
+    if len(user_args) == 2:
+        a, z = [int(x) for x in user_args[:2]]
+        arange = range(a, a+1)
+        zrange = range(z, z+1)
+        do_all_calculations(arange=arange, zrange=zrange, force=force)
+    elif len(user_args) == 3:
+        amin, amax, z = [int(x) for x in user_args[:3]]
+        arange = range(amin, amax+1)
+        zrange = range(z, z+1)
+        do_all_calculations(arange=arange, zrange=zrange, force=force)
+    elif len(user_args) == 4:
+        amin, amax, zmin, zmax = [int(x) for x in user_args[:4]]
+        arange = range(amin, amax+1)
+        zrange = range(zmin, zmax+1)
         do_all_calculations(arange=arange, zrange=zrange, force=force)
     else:
         print ('User entered %d arguments. ' % (len(user_args),) +
-               'shell_calc.py requires 4 arguments: ' +
-               'A_min, A_max, Z_min, Z_max.')
+               'shell_calc.py requires 2-4 arguments.')
