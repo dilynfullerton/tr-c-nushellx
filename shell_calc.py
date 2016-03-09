@@ -1,8 +1,23 @@
 #!/usr/bin/python
+"""shell_calc.py
+
+To run as a script:
+
+    $ shell_calc.py [-[Ff]] Amin Amax Zmin Zmax
+
+For each valid (A, Z) pair in the range defined by [Amin, Amax] x [Zmin, Zmax],
+where [.,.] signifies an inclusive interval over the positive integers,
+runs the nushellx shell calculation for each matching interaction file in
+SOURCE directory as well as usdb.
+
+If -F or -f precedes the arguments, forces recalculation even if outfiles
+already exist in the RESULTS directory.
+"""
 from __future__ import division
 from collections import deque
 from os import getcwd, path, walk, mkdir, link, chdir, rmdir, listdir
 from subprocess import call
+from sys import argv
 import re
 import glob
 
@@ -330,13 +345,21 @@ def remove_empty_directories(root, remove_root=False):
         rmdir(root)
 
 
-def main():
-    do_all_calculations(
-        arange=range(4, 7),
-        zrange=[4, 5, 6],
-        force=False
-    )
-
-
 if __name__ == "__main__":
-    main()
+    if '-' in argv[1]:
+        if 'f' in argv[1] or 'F' in argv[1]:
+            force = True
+        user_args = argv[2:]
+    else:
+        force = False
+        user_args = argv[1:]
+    if len(user_args) == 4:
+        amin, amax = user_args[:2]
+        arange = range(int(amin), int(amax)+1)
+        zmin, zmax = user_args[2:4]
+        zrange = range(int(zmin), int(zmax)+1)
+        do_all_calculations(arange=arange, zrange=zrange, force=force)
+    else:
+        print ('User entered %d arguments. ' % (len(user_args),) +
+               'shell_calc.py requires 4 arguments: ' +
+               'A_min, A_max, Z_min, Z_max.')
