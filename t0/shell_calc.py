@@ -69,16 +69,6 @@ def do_calculations(a_range,
             if fname_bat is None or force:
                 chdir(root)
                 call(['shell', '%s' % fname_ans])
-    chdir(d)
-    for root, dirs, files in walk(dirpath_results):
-        # if the mass number is not in the range, do not do calculation
-        fname_int = _get_file(files, regex_int)
-        if fname_int is None:
-            continue
-        else:
-            a = mass_number_from_filename(filename=fname_int)
-            if a_range is None or a not in a_range:
-                continue
         # do bat calculation
         fname_bat = _get_file(files, regex_bat)
         if fname_bat is not None:
