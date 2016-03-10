@@ -36,18 +36,17 @@ import glob
 
 # CONSTANTS
 # .ans file
-SEP = '--------------------------------------------------'
-LINES = ['%s',
-         '%s,   %d',
-         '%s',
-         '%s',
-         '%s',
-         ' %d',
-         ' %d',
-         ' %.1f, %.1f, %.1f',
-         ' %d',
-         '%s',
-         '%s']
+LINES = ['--------------------------------------------------',
+         '%-3s,   %-2d            ! option (lpe or lan), neig (zero=10)',
+         '%-10s           ! model space (*.sp) name (a8)',
+         '%s                    ! any restrictions (y/n)',
+         '%-10s           ! interaction (*.int) name (a8)',
+         '%3d                  ! number of protons',
+         '%3d                  ! number of nucleons',
+         '%4.1f,%4.1f,%4.1f,      ! min J, max J, del J',
+         '%3d                  ! parity (0 for +) (1 for -) (2 for both)',
+         '--------------------------------------------------',
+         '%-3s                  ! option']
 
 # directories
 DPATH_MAIN = getcwd()
@@ -374,11 +373,9 @@ def make_ans_file(file_path,
                   parity=0,
                   end_option='st',
                   lines=LINES,
-                  sep=SEP,
                   nl='\n'):
     """Create a .ans file with the given specifications
     :param nl: line separator
-    :param sep: execution separator
     :param lines: list of unformatted file lines
     :param end_option: final option to execute
     :param parity: parity
@@ -394,8 +391,7 @@ def make_ans_file(file_path,
     :param sp_file: model space file name
     :param file_path: path to ans file
     """
-    ans_str = nl.join(lines) % (sep,
-                                option, neig,
+    ans_str = nl.join(lines) % (option, neig,
                                 sp_file,
                                 restriction,
                                 interaction_name,
@@ -403,7 +399,6 @@ def make_ans_file(file_path,
                                 num_nucleons,
                                 j_min, j_max, j_del,
                                 parity,
-                                sep,
                                 end_option)
     f = open(file_path, 'w')
     f.writelines(ans_str)
