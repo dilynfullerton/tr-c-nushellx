@@ -3,7 +3,7 @@
 
 To run as a script:
 
-    $ shell_calc.py [-[Ff]] [[p]n] Amin [Amax] Zmin [Zmax]
+    $ shell_calc.py [-[Ff]] ncomponent formalism Amin [Amax] Zmin [Zmax]
 
 For each valid (A, Z) pair in the range defined by [Amin, Amax] x [Zmin, Zmax],
 where [.,.] signifies an inclusive interval over the positive integers,
@@ -12,17 +12,16 @@ SOURCE directory as well as usdb.
 
 If -F or -f precedes the arguments, forces recalculation even if outfiles
     already exist in the RESULTS directory.
-If the first argument given is 'pn', uses a proton-neutron model space.
-    Else if it is 'n', uses a neutron only model space. If the first
-    argument is not 'n' or 'pn', assumes a proton-neutron model space by
-    default.
-If 2 (additional) arguments are given, assumes these are Amin Zmin.
+If 4 arguments are given,
+    assumes these are ncomponent formalism Amin Zmin.
     Calculation range = {(Amin, Zmin)}, if Amin >= 2*Zmin and Amin, Zmin are
     positive integers.
-If 3 (additional) arguments are given, assumes these are Amin Amax Zmin.
+If 5 arguments are given,
+    assumes these are ncomponent formalism Amin Amax Zmin.
     Calculation range = the set of (A, Z) in [Amin, Amax] x [Zmin],
     where A >= 2*Z and A, Z are positive integers.
-If 4 (additional) arguments are given, assumes these are Amin Amax Zmin Zmax.
+If 6 arguments are given,
+    assumes these are ncomponent formalism Amin Amax Zmin Zmax.
     Calculation range = set of (A, Z) in [Amin, Amax] x [Zmin, Zmax],
     where A >= 2*Z and A, Z are positive integers.
 """
@@ -58,6 +57,7 @@ FNAME_MODEL_SPACE_P_N = 'tmp-p-n'
 FNAME_MODEL_SPACE_P_PN = 'tmp-p-pn'
 FNAME_MODEL_SPACE_SD_N = 'tmp-sd-n'
 FNAME_MODEL_SPACE_SD_PN = 'tmp-sd-pn'
+FNAME_MODEL_SPACE_OUT = 'aaa'
 FNAME_MODEL_SPACE_USDB = 'sd'
 
 # file parsing
@@ -77,13 +77,13 @@ MAP_SHELL_TO_MODEL_SPACES = {
 }
 
 
-def get_model_space(a, proton_neutron=True,
-                    shell_sp_map=MAP_SHELL_TO_MODEL_SPACES,):
+def get_model_space(a, n_component=True,
+                    shell_sp_map=MAP_SHELL_TO_MODEL_SPACES, ):
     """Returns the filename of the model space associated with the given
     mass number
 
     :param a: Mass number
-    :param proton_neutron: If True, assume a 2-component space (protons and
+    :param n_component: If True, assume a 2-component space (protons and
     neutrons), else assume a 1-component space (neutrons only)
     :param shell_sp_map: Map from shell to model space filename
     :return: Filename associated with the given A value
@@ -92,17 +92,16 @@ def get_model_space(a, proton_neutron=True,
     """
     for shell, sp in shell_sp_map.iteritems():
         if a in shell:
-            if not proton_neutron:
-                return sp[0]
-            else:
-                return sp[1]
+            return sp[n_component-1]
     else:
-        if proton_neutron:
-            s = 'pn'
+        if n_component == 2:
+            s = ' pn'
+        elif n_component == 1:
+            s = ' n'
         else:
-            s = 'n'
+            s = ''
         raise NoAvailableModelSpaceException(
-            'No %s model space available for A = %d' % (s, a)
+            'No%s model space available for A = %d' % (s, a)
         )
 
 
@@ -110,13 +109,14 @@ class NoAvailableModelSpaceException(Exception):
     pass
 
 
-def do_all_calculations(arange, zrange, proton_neutron=True,
+def do_all_calculations(arange, zrange, n_component=2, formalism='pn',
                         dirpath_results=DPATH_RESULTS, **kwargs):
     zrange = list(filter(lambda z0: z0 >= 1, zrange))
     for z in zrange:
         arange0 = list(filter(lambda a: a >= 2*z, arange))
         make_results_dir(a_range=arange0, z=z,
-                         pn=proton_neutron, **kwargs)
+                         ncomponent=n_component,
+                         formalism=formalism, **kwargs)
         make_usdb_dir(a_range=arange0, z=z, **kwargs)
         remove_empty_directories(dirpath_results, remove_root=False)
         do_calculations(a_range=arange0, z=z, **kwargs)
@@ -215,7 +215,8 @@ def make_usdb_dir(a_range, z,
                               sp_file=fname_model_space,
                               num_nucleons=mass_num,
                               num_protons=z,
-                              interaction_name='usdb'
+                              interaction_name='usdb',
+                              parity=0
                               )
             else:
                 make_ans_file(file_path=ans_file_path,
@@ -223,15 +224,17 @@ def make_usdb_dir(a_range, z,
                               num_nucleons=mass_num,
                               num_protons=z,
                               interaction_name='usdb',
-                              j_min=0.5, j_max=3.5, j_del=1.0
+                              j_min=0.5, j_max=3.5, j_del=1.0,
+                              parity=1
                               )
 
 
-def make_results_dir(a_range, z, pn,
+def make_results_dir(a_range, z, ncomponent, formalism,
                      d=DPATH_MAIN,
                      dirpath_sources=DPATH_SOURCES,
                      dirpath_results=DPATH_RESULTS,
                      dname_fmt_z=DNAME_FMT_Z,
+                     fname_model_space_out=FNAME_MODEL_SPACE_OUT,
                      regex_int=RGX_FNAME_INT,
                      force=False):
     """Copy all of the directories from the sources_dir into the results_dir
@@ -242,8 +245,6 @@ def make_results_dir(a_range, z, pn,
     :param a_range: Mass range for which to create directories. If None,
     will do for all files.
     :param z: Z number for which to make results
-    :param pn: If True, assumes two component (proton, neutron)
-    system, else assumes one component (neutron only) system
     :param d: Main working directory
     :param dirpath_sources: Directory in which source files are stored
     :param dirpath_results: Directory in which results are to be generated
@@ -275,8 +276,7 @@ def make_results_dir(a_range, z, pn,
                 mkdir(next_results)
             todo_sources.append(next_sources)
             todo_results.append(next_results)
-        for ff in filter(lambda f: re.match(regex_int, f) is not None,
-                         files):
+        for ff in filter(lambda f: re.match(regex_int, f) is not None, files):
             mass_num = mass_number_from_filename(ff)
             if a_range is not None and mass_num not in a_range:
                 continue
@@ -289,38 +289,53 @@ def make_results_dir(a_range, z, pn,
                                               interaction_name + '.int')
             if not path.exists(interaction_file_path):
                 link(path.join(cwd_sources, ff), interaction_file_path)
-            # link .sp file
-            fname_model_space = get_model_space(
-                a=mass_num,
-                proton_neutron=pn)
+            # write .sp file
+            fname_model_space = get_model_space(a=mass_num,
+                                                n_component=ncomponent)
             sp_filename = '%s.sp' % fname_model_space
-            sp_file_path = path.join(new_dir, sp_filename)
-            if not path.exists(sp_file_path):
-                link(path.join(d, sp_filename), sp_file_path)
+            sp_filename_fin = '%s.sp' % fname_model_space_out
+            sp_path_src = path.join(d, sp_filename)
+            sp_path_dst = path.join(new_dir, sp_filename_fin)
+            if force or not path.exists(sp_path_dst):
+                make_sp_file(src=sp_path_src, dst=sp_path_dst,
+                             formalism=formalism)
             # create .ans file
             ans_filename = 'A%d.ans' % mass_num
             ans_file_path = path.join(new_dir, ans_filename)
-            if not path.exists(ans_file_path) or force is True:
+            if force or not path.exists(ans_file_path):
                 if mass_num % 2 == 0:  # even
-                    make_ans_file(file_path=ans_file_path,
-                                  option='lpe', neig=0,
-                                  sp_file=fname_model_space,
-                                  restriction='n',
-                                  interaction_name=interaction_name,
-                                  num_protons=z,
-                                  num_nucleons=mass_num,
-                                  j_min=0.0, j_max=4.0, j_del=1.0,
-                                  parity=0)
-                else:
-                    make_ans_file(file_path=ans_file_path,
-                                  option='lpe', neig=0,
-                                  sp_file=fname_model_space,
-                                  restriction='n',
-                                  interaction_name=interaction_name,
-                                  num_protons=z,
-                                  num_nucleons=mass_num,
-                                  j_min=0.5, j_max=3.5, j_del=1.0,
-                                  parity=0)
+                    j_min, j_max, parity = 0.0, 4.0, 0
+                else:  # odd
+                    j_min, j_max, parity = 0.5, 3.5, 1
+                make_ans_file(file_path=ans_file_path,
+                              option='lpe', neig=0,
+                              sp_file=fname_model_space_out,
+                              restriction='n',
+                              interaction_name=interaction_name,
+                              num_protons=z,
+                              num_nucleons=mass_num,
+                              j_min=j_min, j_max=j_max, j_del=1.0,
+                              parity=parity)
+
+
+def make_sp_file(src, dst, formalism):
+    # read src file into list
+    f = open(src, 'r')
+    inlines = f.readlines()
+    f.close()
+    # apply replacements
+    outlines = list()
+    replacement_map = {'<<FORMALISM>>': formalism}
+    for k, v in replacement_map.iteritems():
+        for line in inlines:
+            if k in line:
+                outlines.append(line.replace(k, str(v)))
+            else:
+                outlines.append(line)
+    # write new lines into dst
+    f = open(dst, 'w')
+    f.writelines(outlines)
+    f.close()
 
 
 def mass_number_from_filename(filename,
@@ -426,32 +441,25 @@ if __name__ == "__main__":
     else:
         force0 = False
         user_args = argv[1:]
-    if 'n' in user_args[0]:
-        if 'pn' in user_args[0]:
-            pn0 = True
-        else:
-            pn0 = False
-        user_args = user_args[1:]
-    else:
-        pn0 = True
-    if len(user_args) == 2:
-        amin, zmin = [int(x) for x in user_args[:2]]
-        a_range0 = range(amin, amin + 1)
-        z_range0 = range(zmin, zmin + 1)
-        do_all_calculations(arange=a_range0, zrange=z_range0,
-                            proton_neutron=pn0, force=force0)
-    elif len(user_args) == 3:
-        amin, amax, zmin = [int(x) for x in user_args[:3]]
-        a_range0 = range(amin, amax + 1)
-        z_range0 = range(zmin, zmin + 1)
-        do_all_calculations(arange=a_range0, zrange=z_range0,
-                            proton_neutron=pn0, force=force0)
-    elif len(user_args) == 4:
-        amin, amax, zmin, zmax = [int(x) for x in user_args[:4]]
-        a_range0 = range(amin, amax + 1)
-        z_range0 = range(zmin, zmax + 1)
-        do_all_calculations(arange=a_range0, zrange=z_range0,
-                            proton_neutron=pn0, force=force0)
+    if len(user_args) == 4:
+        ncomponent0 = int(user_args[0])
+        formalism0 = user_args[1]
+        amin, zmin = [int(x) for x in user_args[2:]]
+        do_all_calculations(arange=[amin], zrange=[zmin],
+                            n_component=ncomponent0, formalism=formalism0)
+    elif len(user_args) == 5:
+        ncomponent0 = int(user_args[0])
+        formalism0 = user_args[1]
+        amin, amax, zmin = [int(x) for x in user_args[2:]]
+        do_all_calculations(arange=range(amin, amax+1), zrange=[zmin],
+                            n_component=ncomponent0, formalism=formalism0)
+    elif len(user_args) == 6:
+        ncomponent0 = int(user_args[0])
+        formalism0 = user_args[1]
+        amin, amax, zmin, zmax = [int(x) for x in user_args[2:]]
+        do_all_calculations(arange=range(amin, amax+1),
+                            zrange=range(zmin, zmax+1),
+                            n_component=ncomponent0, formalism=formalism0)
     else:
         print ('User entered %d arguments. ' % (len(user_args),) +
-               'shell_calc.py requires 2-5 arguments.')
+               'shell_calc.py requires 4-6 arguments.')
