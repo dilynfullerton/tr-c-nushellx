@@ -17,14 +17,14 @@ If the first argument given is 'pn', uses a proton-neutron model space.
     argument is not 'n' or 'pn', assumes a proton-neutron model space by
     default.
 If 2 (additional) arguments are given, assumes these are Amin Zmin.
-    Calculation range = {(Amin, Zmin)}, if Amin >= Zmin and Amin, Zmin are
+    Calculation range = {(Amin, Zmin)}, if Amin >= 2*Zmin and Amin, Zmin are
     positive integers.
 If 3 (additional) arguments are given, assumes these are Amin Amax Zmin.
     Calculation range = the set of (A, Z) in [Amin, Amax] x [Zmin],
-    where A >= Z and A, Z are positive integers.
+    where A >= 2*Z and A, Z are positive integers.
 If 4 (additional) arguments are given, assumes these are Amin Amax Zmin Zmax.
     Calculation range = set of (A, Z) in [Amin, Amax] x [Zmin, Zmax],
-    where A >= Z and A, Z are positive integers.
+    where A >= 2*Z and A, Z are positive integers.
 """
 from __future__ import division
 from collections import deque
@@ -48,7 +48,6 @@ LINES = ['%s',
          ' %d',
          '%s',
          '%s']
-NUM_PROTONS = 8
 
 # directories
 DPATH_MAIN = getcwd()
@@ -116,7 +115,7 @@ def do_all_calculations(arange, zrange, proton_neutron=True,
                         dirpath_results=DPATH_RESULTS, **kwargs):
     zrange = list(filter(lambda z0: z0 >= 1, zrange))
     for z in zrange:
-        arange0 = list(filter(lambda a: a >= z, arange))
+        arange0 = list(filter(lambda a: a >= 2*z, arange))
         make_results_dir(a_range=arange0, z=z,
                          pn=proton_neutron, **kwargs)
         make_usdb_dir(a_range=arange0, z=z, **kwargs)
@@ -216,15 +215,17 @@ def make_usdb_dir(a_range, z,
                 make_ans_file(file_path=ans_file_path,
                               sp_file=fname_model_space,
                               num_nucleons=mass_num,
-                              interaction_name='usdb',
-                              num_protons=z)
+                              num_protons=z,
+                              interaction_name='usdb'
+                              )
             else:
                 make_ans_file(file_path=ans_file_path,
                               sp_file=fname_model_space,
                               num_nucleons=mass_num,
-                              interaction_name='usdb',
                               num_protons=z,
-                              j_min=0.5, j_max=3.5, j_del=1.0)
+                              interaction_name='usdb',
+                              j_min=0.5, j_max=3.5, j_del=1.0
+                              )
 
 
 def make_results_dir(a_range, z, pn,
