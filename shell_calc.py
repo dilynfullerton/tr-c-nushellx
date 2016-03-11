@@ -188,8 +188,8 @@ def _get_file(list_of_fname, regex=RGX_FNAME_ANS):
 
 
 def make_usdb_dir(a_range, z,
-                  dirpath_main=DPATH_MAIN,
                   dirpath_results=DPATH_RESULTS,
+                  dirpath_templates=DPATH_TEMPLATES,
                   _dirname_usdb=DNAME_USDB,
                   _fname_model_space=FNAME_MODEL_SPACE_USDB,
                   _usdb_arange=SD_SHELL,
@@ -209,7 +209,7 @@ def make_usdb_dir(a_range, z,
         sp_filename = '%s.sp' % _fname_model_space
         sp_file_path = path.join(dirname, sp_filename)
         if not path.exists(sp_file_path):
-            link(path.join(dirpath_main, sp_filename), sp_file_path)
+            link(path.join(dirpath_templates, sp_filename), sp_file_path)
         # create .ans file
         ans_filename = 'A%d.ans' % mass_num
         ans_file_path = path.join(dirname, ans_filename)
