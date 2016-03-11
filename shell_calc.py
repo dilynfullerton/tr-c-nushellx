@@ -211,22 +211,15 @@ def make_usdb_dir(a_range, z,
         ans_file_path = path.join(dirname, ans_filename)
         if not path.exists(ans_file_path) or force is True:
             if mass_num % 2 == 0:  # even
-                make_ans_file(file_path=ans_file_path,
-                              sp_file=fname_model_space,
-                              num_nucleons=mass_num,
-                              num_protons=z,
-                              interaction_name='usdb',
-                              parity=0
-                              )
+                j_min, j_max, parity = 0.0, 4.0, 0
             else:
-                make_ans_file(file_path=ans_file_path,
-                              sp_file=fname_model_space,
-                              num_nucleons=mass_num,
-                              num_protons=z,
-                              interaction_name='usdb',
-                              j_min=0.5, j_max=3.5, j_del=1.0,
-                              parity=1
-                              )
+                j_min, j_max, parity = 0.5, 3.5, 0
+            make_ans_file(
+                file_path=ans_file_path, sp_file=fname_model_space,
+                num_nucleons=mass_num, num_protons=z,
+                interaction_name='usdb',
+                j_min=j_min, j_max=j_max, j_del=1.0, parity=parity,
+                )
 
 
 def make_results_dir(a_range, z, ncomponent, formalism,
@@ -307,15 +300,13 @@ def make_results_dir(a_range, z, ncomponent, formalism,
                     j_min, j_max, parity = 0.0, 4.0, 0
                 else:  # odd
                     j_min, j_max, parity = 0.5, 3.5, 1
-                make_ans_file(file_path=ans_file_path,
-                              option='lpe', neig=0,
-                              sp_file=fname_model_space_out,
-                              restriction='n',
-                              interaction_name=interaction_name,
-                              num_protons=z,
-                              num_nucleons=mass_num,
-                              j_min=j_min, j_max=j_max, j_del=1.0,
-                              parity=parity)
+                make_ans_file(
+                    file_path=ans_file_path,
+                    sp_file=fname_model_space_out,
+                    interaction_name=interaction_name,
+                    option='lpe', neig=0, restriction='n',
+                    num_protons=z, num_nucleons=mass_num,
+                    j_min=j_min, j_max=j_max, j_del=1.0, parity=parity)
 
 
 def make_sp_file(src, dst, formalism):

@@ -2,3 +2,5 @@
 /.idea
 /results
 /sources
+/results-old
+shell_calc.pyc
