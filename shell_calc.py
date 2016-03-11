@@ -35,24 +35,28 @@ import glob
 
 # CONSTANTS
 # .ans file
-LINES = ['--------------------------------------------------',
-         '%-3s,   %-2d            ! option (lpe or lan), neig (zero=10)',
-         '%-10s           ! model space (*.sp) name (a8)',
-         '%s                    ! any restrictions (y/n)',
-         '%-10s           ! interaction (*.int) name (a8)',
-         '%3d                  ! number of protons',
-         '%3d                  ! number of nucleons',
-         '%4.1f,%4.1f,%4.1f,      ! min J, max J, del J',
-         '%3d                  ! parity (0 for +) (1 for -) (2 for both)',
-         '--------------------------------------------------',
-         '%-3s                  ! option']
+FLINES_FMT_ANS = [
+    '--------------------------------------------------',
+    '%-3s,   %-2d            ! option (lpe or lan), neig (zero=10)',
+    '%-10s           ! model space (*.sp) name (a8)',
+    '%s                    ! any restrictions (y/n)',
+    '%-10s           ! interaction (*.int) name (a8)',
+    '%3d                  ! number of protons',
+    '%3d                  ! number of nucleons',
+    '%4.1f,%4.1f,%4.1f,      ! min J, max J, del J',
+    '%3d                  ! parity (0 for +) (1 for -) (2 for both)',
+    '--------------------------------------------------',
+    '%-3s                  ! option']
 
 # directories
 DPATH_MAIN = getcwd()
 DPATH_SOURCES = path.join(DPATH_MAIN, 'sources')
 DPATH_RESULTS = path.join(DPATH_MAIN, 'results')
+DPATH_TEMPLATES = path.join(DPATH_MAIN, 'templates')
 DNAME_FMT_Z = 'Z%d'
 DNAME_USDB = 'usdb'
+
+# file names
 FNAME_MODEL_SPACE_P_N = 'tmp-p-n'
 FNAME_MODEL_SPACE_P_PN = 'tmp-p-pn'
 FNAME_MODEL_SPACE_SD_N = 'tmp-sd-n'
@@ -62,10 +66,10 @@ FNAME_MODEL_SPACE_USDB = 'sd'
 
 # file parsing
 RGX_MASS_NUM = 'A\d+'
-CHR_FILENAME_SPLIT = '_'
 RGX_FNAME_INT = '.*\.int'
 RGX_FNAME_ANS = '.*\.ans'
 RGX_FNAME_BAT = RGX_MASS_NUM + '\.bat'
+CHR_FILENAME_SPLIT = '_'
 
 # shells
 S_SHELL = frozenset(range(1, 4))
@@ -123,7 +127,7 @@ def do_all_calculations(arange, zrange, n_component=2, formalism='pn',
 
 
 def do_calculations(a_range, z,
-                    d=DPATH_MAIN,
+                    dirpath_main=DPATH_MAIN,
                     dirpath_results=DPATH_RESULTS,
                     dirname_fmt_z=DNAME_FMT_Z,
                     regex_ans=RGX_FNAME_ANS,
@@ -158,7 +162,7 @@ def do_calculations(a_range, z,
                     call(['source', '%s' % fname_bat])
                 except OSError:
                     call(['source %s' % fname_bat], shell=True)
-    chdir(d)
+    chdir(dirpath_main)
     return 1
 
 
@@ -184,51 +188,50 @@ def _get_file(list_of_fname, regex=RGX_FNAME_ANS):
 
 
 def make_usdb_dir(a_range, z,
-                  usdb_arange=SD_SHELL,
-                  d=DPATH_MAIN,
+                  dirpath_main=DPATH_MAIN,
                   dirpath_results=DPATH_RESULTS,
-                  dirname_usdb=DNAME_USDB,
-                  fname_model_space=FNAME_MODEL_SPACE_USDB,
+                  _dirname_usdb=DNAME_USDB,
+                  _fname_model_space=FNAME_MODEL_SPACE_USDB,
+                  _usdb_arange=SD_SHELL,
                   force=False):
     a_range = list(filter(lambda a: a >= z, a_range))
     results_subdir = path.join(dirpath_results, 'Z%d' % z)
-    usdb_dirpath = path.join(results_subdir, dirname_usdb)
+    usdb_dirpath = path.join(results_subdir, _dirname_usdb)
     if not path.exists(usdb_dirpath):
         mkdir(usdb_dirpath)
     for mass_num in a_range:
-        if mass_num not in usdb_arange:
+        if mass_num not in _usdb_arange:
             continue
         dirname = path.join(usdb_dirpath, 'A%d' % mass_num)
         if not path.exists(dirname):
             mkdir(dirname)
         # link .sp file
-        sp_filename = '%s.sp' % fname_model_space
+        sp_filename = '%s.sp' % _fname_model_space
         sp_file_path = path.join(dirname, sp_filename)
         if not path.exists(sp_file_path):
-            link(path.join(d, sp_filename), sp_file_path)
+            link(path.join(dirpath_main, sp_filename), sp_file_path)
         # create .ans file
         ans_filename = 'A%d.ans' % mass_num
         ans_file_path = path.join(dirname, ans_filename)
-        if not path.exists(ans_file_path) or force is True:
+        if force or not path.exists(ans_file_path):
             if mass_num % 2 == 0:  # even
                 j_min, j_max, parity = 0.0, 4.0, 0
             else:
                 j_min, j_max, parity = 0.5, 3.5, 0
             make_ans_file(
-                file_path=ans_file_path, sp_file=fname_model_space,
+                file_path=ans_file_path, sp_file=_fname_model_space,
                 num_nucleons=mass_num, num_protons=z,
                 interaction_name='usdb',
-                j_min=j_min, j_max=j_max, j_del=1.0, parity=parity,
-                )
+                j_min=j_min, j_max=j_max, j_del=1.0, parity=parity, )
 
 
 def make_results_dir(a_range, z, ncomponent, formalism,
-                     d=DPATH_MAIN,
                      dirpath_sources=DPATH_SOURCES,
                      dirpath_results=DPATH_RESULTS,
-                     dname_fmt_z=DNAME_FMT_Z,
-                     fname_model_space_out=FNAME_MODEL_SPACE_OUT,
-                     regex_int=RGX_FNAME_INT,
+                     dirpath_templates=DPATH_TEMPLATES,
+                     _dname_fmt_z=DNAME_FMT_Z,
+                     _fname_model_space_out=FNAME_MODEL_SPACE_OUT,
+                     _regex_int=RGX_FNAME_INT,
                      force=False):
     """Copy all of the directories from the sources_dir into the results_dir
     recursively, but when encountering a *.int file, make a directory for the
@@ -238,18 +241,27 @@ def make_results_dir(a_range, z, ncomponent, formalism,
     :param a_range: Mass range for which to create directories. If None,
     will do for all files.
     :param z: Z number for which to make results
-    :param d: Main working directory
+    :param ncomponent: Number of particle components in system.
+        neutrons       -> 1
+        proton-neutron -> 2
+    :param formalism: formalism under which to run NuShellX.
+        't'  -> isospin formalism
+        'pn' -> proton-neutron formalism
     :param dirpath_sources: Directory in which source files are stored
     :param dirpath_results: Directory in which results are to be generated
-    :param dname_fmt_z: Results subdirectory name template that takes the
+    :param dirpath_templates: Directory in which *.sp templates files
+    are housed
+    :param _dname_fmt_z: Results subdirectory name template that takes the
     proton number (and integer) as its sole argument
-    :param regex_int: Regular expression that matches interaction files
+    :param _fname_model_space_out: name of the model space file to write
+    :param _regex_int: Regular expression that matches interaction files
     :param force: If true, force making of .ans file, even if one
     already exists
     """
+    # only use A values greater than or equal to Z
     a_range = list(filter(lambda a: a >= z, a_range))
 
-    results_subdir = path.join(dirpath_results, dname_fmt_z % z)
+    results_subdir = path.join(dirpath_results, _dname_fmt_z % z)
     if not path.exists(dirpath_sources):
         raise SourcesDirDoesNotExistException()
     if not path.exists(results_subdir):
@@ -269,7 +281,7 @@ def make_results_dir(a_range, z, ncomponent, formalism,
                 mkdir(next_results)
             todo_sources.append(next_sources)
             todo_results.append(next_results)
-        for ff in filter(lambda f: re.match(regex_int, f) is not None, files):
+        for ff in filter(lambda f: re.match(_regex_int, f) is not None, files):
             mass_num = mass_number_from_filename(ff)
             if a_range is not None and mass_num not in a_range:
                 continue
@@ -286,8 +298,8 @@ def make_results_dir(a_range, z, ncomponent, formalism,
             fname_model_space = get_model_space(a=mass_num,
                                                 n_component=ncomponent)
             sp_filename = '%s.sp' % fname_model_space
-            sp_filename_fin = '%s.sp' % fname_model_space_out
-            sp_path_src = path.join(d, sp_filename)
+            sp_filename_fin = '%s.sp' % _fname_model_space_out
+            sp_path_src = path.join(dirpath_templates, sp_filename)
             sp_path_dst = path.join(new_dir, sp_filename_fin)
             if force or not path.exists(sp_path_dst):
                 make_sp_file(src=sp_path_src, dst=sp_path_dst,
@@ -302,7 +314,7 @@ def make_results_dir(a_range, z, ncomponent, formalism,
                     j_min, j_max, parity = 0.5, 3.5, 1
                 make_ans_file(
                     file_path=ans_file_path,
-                    sp_file=fname_model_space_out,
+                    sp_file=_fname_model_space_out,
                     interaction_name=interaction_name,
                     option='lpe', neig=0, restriction='n',
                     num_protons=z, num_nucleons=mass_num,
@@ -368,18 +380,11 @@ class SourcesDirDoesNotExistException(Exception):
     pass
 
 
-def make_ans_file(file_path,
-                  sp_file,
-                  num_nucleons,
-                  interaction_name='usdb',
-                  option='lpe', neig=0,
-                  restriction='n',
-                  num_protons=8,
-                  j_min=0.0, j_max=4.0, j_del=1.0,
-                  parity=0,
-                  end_option='st',
-                  lines=LINES,
-                  nl='\n'):
+def make_ans_file(
+        file_path, sp_file, num_nucleons, interaction_name='usdb',
+        option='lpe', neig=0, restriction='n', num_protons=8,
+        j_min=0.0, j_max=4.0, j_del=1.0, parity=0, end_option='st',
+        lines=FLINES_FMT_ANS, nl='\n'):
     """Create a .ans file with the given specifications
     :param nl: line separator
     :param lines: list of unformatted file lines
@@ -397,15 +402,9 @@ def make_ans_file(file_path,
     :param sp_file: model space file name
     :param file_path: path to ans file
     """
-    ans_str = nl.join(lines) % (option, neig,
-                                sp_file,
-                                restriction,
-                                interaction_name,
-                                num_protons,
-                                num_nucleons,
-                                j_min, j_max, j_del,
-                                parity,
-                                end_option)
+    ans_str = nl.join(lines) % (
+        option, neig, sp_file, restriction, interaction_name,
+        num_protons, num_nucleons, j_min, j_max, j_del, parity, end_option)
     f = open(file_path, 'w')
     f.writelines(ans_str)
     f.close()
