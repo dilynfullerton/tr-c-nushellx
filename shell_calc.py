@@ -459,7 +459,7 @@ def _print_progress(completed, total,
                     text_fmt=STR_PROGRESS_BAR):
     text = text_fmt % (floor(completed), total)
     p = completed / total
-    bar_fill = int(ceil(p * bar_len))
+    bar_fill = int(floor(p * bar_len))
     progress_bar = '[' + '#'*bar_fill + ' '*(bar_len - bar_fill) + ']'
     sp_fill_len = total_width - len(text) - len(progress_bar)
     if sp_fill_len < 0:
@@ -497,6 +497,8 @@ def do_calculations(
         # do shell calculation
         if progress:
             _print_progress(jobs_completed, jobs_total)
+        _do_shell_calculation(root=root, files=files, force=force,
+                              verbose=verbose)
         jobs_completed += .5
         # update files list
         files = listdir(root)
