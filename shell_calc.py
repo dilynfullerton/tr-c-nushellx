@@ -51,7 +51,7 @@ FLINES_FMT_ANS = [
 ]
 
 # directories
-DPATH_MAIN = getcwd()
+DPATH_MAIN = './'
 DPATH_SOURCES = path.join(DPATH_MAIN, 'sources')
 DPATH_RESULTS = path.join(DPATH_MAIN, 'results')
 DPATH_TEMPLATES = path.join(DPATH_MAIN, 'templates')
@@ -78,7 +78,7 @@ _RGX_FNAME_BAT = RGX_MASS_NUM + '\.bat'
 CHR_FILENAME_SPLIT = '_'
 
 # printing
-WIDTH_TERM = 80
+WIDTH_TERM = 79
 WIDTH_PROGRESS_BAR = 48
 STR_PROGRESS_BAR = 'Progress: %3d/%-3d '
 STR_FMT_PROGRESS_HEAD = 'Doing shell calculation for Z = %d'
@@ -453,7 +453,7 @@ def _do_bat_calculation(root, files, force, verbose,
             _bat_calculation(root=root, fname_bat=fname_bat, verbose=verbose)
 
 
-def _print_progress(completed, total,
+def _print_progress(completed, total, end=False,
                     bar_len=WIDTH_PROGRESS_BAR,
                     total_width=WIDTH_TERM,
                     text_fmt=STR_PROGRESS_BAR):
@@ -464,7 +464,9 @@ def _print_progress(completed, total,
     sp_fill_len = total_width - len(text) - len(progress_bar)
     if sp_fill_len < 0:
         sp_fill_len = 0
-    stdout.write('\r' + text + ' '*sp_fill_len + progress_bar)
+    line = '\r' + text + ' '*sp_fill_len + progress_bar
+    if end:
+        line += '\n'
     stdout.flush()
 
 
@@ -509,8 +511,7 @@ def do_calculations(
                             verbose=verbose)
         jobs_completed += .5
     if progress:
-        _print_progress(jobs_completed, jobs_total)
-        stdout.write('\n')
+        _print_progress(jobs_completed, jobs_total, end=True)
     chdir(dirpath_main)
     return 1
 

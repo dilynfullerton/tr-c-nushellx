@@ -3,4 +3,5 @@
 /results
 /sources
 /results-old
-shell_calc.pyc
+/results-old2
+*.pyc
