@@ -468,6 +468,7 @@ def _print_progress(completed, total, end=False,
     line = '\r' + text + ' '*sp_fill_len + progress_bar
     if end:
         line += '\n'
+    stdout.write(line)
     stdout.flush()
 
 
