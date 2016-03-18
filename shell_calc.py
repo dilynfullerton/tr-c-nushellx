@@ -26,13 +26,14 @@ If 6 arguments are given,
     where A >= 2*Z and A, Z are positive integers.
 """
 from __future__ import division
-from math import ceil, floor
+
+import glob
+import re
 from collections import deque
+from math import floor
 from os import getcwd, path, walk, mkdir, link, chdir, rmdir, listdir, remove
 from subprocess import Popen, PIPE
 from sys import argv, stdout
-import re
-import glob
 
 # CONSTANTS
 # .ans file
@@ -51,7 +52,7 @@ FLINES_FMT_ANS = [
 ]
 
 # directories
-DPATH_MAIN = './'
+DPATH_MAIN = getcwd()
 DPATH_SOURCES = path.join(DPATH_MAIN, 'sources')
 DPATH_RESULTS = path.join(DPATH_MAIN, 'results')
 DPATH_TEMPLATES = path.join(DPATH_MAIN, 'templates')
