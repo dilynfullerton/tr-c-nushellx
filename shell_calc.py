@@ -81,7 +81,7 @@ CHR_FILENAME_SPLIT = '_'
 # printing
 WIDTH_TERM = 79
 WIDTH_PROGRESS_BAR = 48
-STR_PROGRESS_BAR = 'Progress: %3d/%-3d '
+STR_PROGRESS_BAR = '  Progress: %3d/%-3d '
 STR_FMT_PROGRESS_HEAD = 'Doing shell calculation for Z = %d'
 
 # shells
