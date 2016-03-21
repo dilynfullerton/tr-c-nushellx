@@ -89,6 +89,8 @@ S_SHELL = frozenset(range(1, 4))
 P_SHELL = frozenset(range(4, 16))
 SD_SHELL = frozenset(range(16, 40))
 MAP_SHELL_TO_MODEL_SPACES = {
+    S_SHELL: (FNAME_MODEL_SPACE_P_N, FNAME_MODEL_SPACE_P_PN),
+    # todo fix above value
     P_SHELL: (FNAME_MODEL_SPACE_P_N, FNAME_MODEL_SPACE_P_PN),
     SD_SHELL: (FNAME_MODEL_SPACE_SD_N, FNAME_MODEL_SPACE_SD_PN)
 }
