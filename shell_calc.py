@@ -523,7 +523,7 @@ def do_all_calculations(arange, zrange, n_component=2, formalism='pn',
                         dirpath_results=DPATH_RESULTS, **kwargs):
     zrange = list(filter(lambda z0: z0 >= 1, zrange))
     for z in zrange:
-        arange0 = list(filter(lambda a: a >= 2*z, arange))
+        arange0 = list(filter(lambda a: a >= z, arange))
         make_results_dir(a_range=arange0, z=z,
                          ncomponent=n_component,
                          formalism=formalism, **kwargs)
