@@ -458,18 +458,19 @@ def _print_progress(completed, total, end=False,
                     bar_len=WIDTH_PROGRESS_BAR,
                     total_width=WIDTH_TERM,
                     text_fmt=STR_PROGRESS_BAR):
-    text = text_fmt % (floor(completed), total)
-    p = completed / total
-    bar_fill = int(floor(p * bar_len))
-    progress_bar = '[' + '#'*bar_fill + ' '*(bar_len - bar_fill) + ']'
-    sp_fill_len = total_width - len(text) - len(progress_bar)
-    if sp_fill_len < 0:
-        sp_fill_len = 0
-    line = '\r' + text + ' '*sp_fill_len + progress_bar
-    if end:
-        line += '\n'
-    stdout.write(line)
-    stdout.flush()
+    if total > 0:
+        text = text_fmt % (floor(completed), total)
+        p = completed / total
+        bar_fill = int(floor(p * bar_len))
+        progress_bar = '[' + '#'*bar_fill + ' '*(bar_len - bar_fill) + ']'
+        sp_fill_len = total_width - len(text) - len(progress_bar)
+        if sp_fill_len < 0:
+            sp_fill_len = 0
+        line = '\r' + text + ' '*sp_fill_len + progress_bar
+        if end:
+            line += '\n'
+        stdout.write(line)
+        stdout.flush()
 
 
 def do_calculations(
