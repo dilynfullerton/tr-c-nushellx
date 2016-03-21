@@ -1,9 +1,5 @@
 /other
 /.idea
-/results
-/sources
-/results-old
-/results-old2
+/results*
+/sources*
 *.pyc
-/results-old3
-/sources-old3
