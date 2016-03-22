@@ -482,7 +482,8 @@ def _print_progress(
         stdout.flush()
 
 
-def _do_calculation_t(todo_walk, force):
+def _do_calculation_t(todo_walk, z, force, progress,
+                      _str_fmt_prog=STR_FMT_PROGRESS_HEAD):
     def _r(root_, files_):
         _do_shell_calculation(root=root_, files=files_,
                               force=force, verbose=False)
@@ -495,12 +496,48 @@ def _do_calculation_t(todo_walk, force):
         t = Thread(target=_r, args=(root, files))
         t.start()
         active_threads.append(t)
+    # progress bar
+    jobs_completed = 0
+    jobs_total = len(active_threads)
+    if progress:
+        print _str_fmt_prog % z
     # join threads
     while len(active_threads) > 0:
+        if progress:
+            _print_progress(jobs_completed, jobs_total)
         t = active_threads.pop()
         t.join()
         if t.isAlive():
             active_threads.append(t)
+        else:
+            jobs_completed += 1
+    if progress:
+        _print_progress(jobs_completed, jobs_total, end=True)
+
+
+def _do_calculation(todo_walk, z, force, verbose, progress,
+                    _str_fmt_prog=STR_FMT_PROGRESS_HEAD):
+    jobs_completed = 0
+    jobs_total = len(todo_walk)
+    if progress:
+        print _str_fmt_prog % z
+    for root, files in todo_walk:
+        # do shell calculation
+        if progress:
+            _print_progress(jobs_completed, jobs_total)
+        _do_shell_calculation(root=root, files=files, force=force,
+                              verbose=verbose)
+        jobs_completed += .5
+        # update files list
+        files = listdir(root)
+        # do bat calculation
+        if progress:
+            _print_progress(jobs_completed, jobs_total)
+        _do_bat_calculation(root=root, files=files, force=force,
+                            verbose=verbose)
+        jobs_completed += .5
+    if progress:
+        _print_progress(jobs_completed, jobs_total, end=True)
 
 
 def do_calculations(
@@ -509,7 +546,6 @@ def do_calculations(
         dirpath_results=DPATH_RESULTS,
         dirname_fmt_z=DNAME_FMT_Z,
         _rgx_bat=_RGX_FNAME_BAT, _rgx_int=_RGX_FNAME_INT,
-        _str_fmt_prog=STR_FMT_PROGRESS_HEAD,
         force=False, verbose=False, progress=True, threading=True
 ):
     dirpath_z = path.join(dirpath_results, dirname_fmt_z % z)
@@ -523,29 +559,12 @@ def do_calculations(
             if a in a_range:
                 todo.append((root, files))
     if threading:
-        _do_calculation_t(todo_walk=todo, force=force)
+        _do_calculation_t(todo_walk=todo, z=z, force=force, progress=progress)
     else:
-        jobs_completed = 0
-        jobs_total = len(todo)
-        if progress:
-            print _str_fmt_prog % z
-        for root, files in todo:
-            # do shell calculation
-            if progress:
-                _print_progress(jobs_completed, jobs_total)
-            _do_shell_calculation(root=root, files=files, force=force,
-                                  verbose=verbose)
-            jobs_completed += .5
-            # update files list
-            files = listdir(root)
-            # do bat calculation
-            if progress:
-                _print_progress(jobs_completed, jobs_total)
-            _do_bat_calculation(root=root, files=files, force=force,
-                                verbose=verbose)
-            jobs_completed += .5
-        if progress:
-            _print_progress(jobs_completed, jobs_total, end=True)
+        _do_calculation(
+            todo_walk=todo, z=z,
+            force=force, progress=progress, verbose=verbose,
+        )
     chdir(dirpath_main)
     return 1
 
