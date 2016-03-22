@@ -34,7 +34,7 @@ from math import floor
 from os import getcwd, path, walk, mkdir, link, chdir, rmdir, listdir, remove
 from subprocess import Popen, PIPE
 from sys import argv, stdout
-from threading import Thread
+from threading import Thread, activeCount
 
 # CONSTANTS
 # .ans file
@@ -95,6 +95,9 @@ MAP_SHELL_TO_MODEL_SPACES = {
     P_SHELL: (FNAME_MODEL_SPACE_P_N, FNAME_MODEL_SPACE_P_PN),
     SD_SHELL: (FNAME_MODEL_SPACE_SD_N, FNAME_MODEL_SPACE_SD_PN)
 }
+
+# threading
+MAX_OPEN_THREADS = 12
 
 
 class SourcesDirDoesNotExistException(Exception):
@@ -484,35 +487,36 @@ def _print_progress(
         stdout.flush()
 
 
-def _do_calculation_t(todo_walk, z, force, progress,
-                      _str_fmt_prog=STR_FMT_PROGRESS_HEAD):
+def _do_calculation_t(
+        todo_walk, z, force, progress,
+        _max_open_threads=MAX_OPEN_THREADS,
+        _str_fmt_prog=STR_FMT_PROGRESS_HEAD
+):
     def _r(root_, files_):
         _do_shell_calculation(root=root_, files=files_,
                               force=force, verbose=False)
         new_files = listdir(root_)
         _do_bat_calculation(root=root_, files=new_files,
                             force=force, verbose=False)
-    # open threads
-    open_threads = list()
-    for root, files in todo_walk:
-        t = Thread(target=_r, args=(root, files))
-        t.start()
-        open_threads.append(t)
-    # progress bar
+    threads_opened = deque()
+    todo_list = list(todo_walk)
     jobs_completed = 0
-    jobs_total = len(open_threads)
+    jobs_total = len(todo_list)
     if progress:
         print _str_fmt_prog % z
-    # join threads
-    while len(open_threads) > 0:
+    while len(todo_list) > 0 or len(threads_opened) > 0:
         if progress:
             _print_progress(jobs_completed, jobs_total)
-        t = open_threads.pop()
+        # if room, start new threads
+        while activeCount() < _max_open_threads and len(todo_list) > 0:
+            root, files = todo_list.pop()
+            t = Thread(target=_r, args=(root, files))
+            t.start()
+            threads_opened.append(t)
+        # wait for completion of first thread
+        t = threads_opened.popleft()
         t.join()
-        if t.isAlive():
-            open_threads.append(t)
-        else:
-            jobs_completed += 1
+        jobs_completed += 1
     if progress:
         _print_progress(jobs_completed, jobs_total, end=True)
 
