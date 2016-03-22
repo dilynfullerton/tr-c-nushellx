@@ -29,12 +29,14 @@ from __future__ import division
 
 import glob
 import re
+from Queue import Queue
 from collections import deque
 from math import floor
-from os import getcwd, path, walk, mkdir, link, chdir, rmdir, listdir, remove
+from os import getcwd, path, walk, mkdir, link, rmdir, listdir, remove
 from subprocess import Popen, PIPE
 from sys import argv, stdout
 from threading import Thread, activeCount
+from time import sleep
 
 # CONSTANTS
 # .ans file
@@ -97,7 +99,7 @@ MAP_SHELL_TO_MODEL_SPACES = {
 }
 
 # threading
-MAX_OPEN_THREADS = 12
+MAX_OPEN_THREADS = 10
 
 
 class SourcesDirDoesNotExistException(Exception):
@@ -403,11 +405,9 @@ def _shell_calculation(
         root, fname_ans, verbose,
         _fname_stdout=_FNAME_SHELL_STDOUT, _fname_stderr=_FNAME_SHELL_STDERR
 ):
-    main_dir = getcwd()
-    chdir(root)
     args = ['shell', '%s' % fname_ans]
     if not verbose:
-        p = Popen(args=args, stdout=PIPE, stderr=PIPE)
+        p = Popen(args=args, stdout=PIPE, stderr=PIPE, cwd=root)
         out, err = p.communicate()
         fout = open(path.join(root, _fname_stdout), 'w')
         fout.write(out)
@@ -416,9 +416,9 @@ def _shell_calculation(
         ferr.write(err)
         ferr.close()
     else:
-        p = Popen(args=args)
+        p = Popen(args=args, cwd=root)
         p.wait()
-    chdir(main_dir)
+    return 1
 
 
 def _do_shell_calculation(
@@ -429,22 +429,21 @@ def _do_shell_calculation(
     fname_bat = _get_file(files, _rgx_bat)
     if fname_ans is not None:  # There is a *.ans file
         if fname_bat is None or force:
-            _shell_calculation(root=root, fname_ans=fname_ans, verbose=verbose)
+            return _shell_calculation(root=root, fname_ans=fname_ans,
+                                      verbose=verbose)
 
 
 def _bat_calculation(
         root, fname_bat, verbose,
         _fname_stdout=_FNAME_BAT_STDOUT, _fname_stderr=_FNAME_BAT_STDERR
 ):
-    main_dir = getcwd()
-    chdir(root)
     args = ['source', '%s' % fname_bat]
     if not verbose:
         try:
-            p = Popen(args=args, stdout=PIPE, stderr=PIPE)
+            p = Popen(args=args, stdout=PIPE, stderr=PIPE, cwd=root)
         except OSError:
             p = Popen(args=' '.join(args), shell=True,
-                      stdout=PIPE, stderr=PIPE)
+                      stdout=PIPE, stderr=PIPE, cwd=root)
         out, err = p.communicate()
         fout = open(path.join(root, _fname_stdout), 'w')
         fout.write(out)
@@ -454,11 +453,11 @@ def _bat_calculation(
         ferr.close()
     else:
         try:
-            p = Popen(args=args)
+            p = Popen(args=args, cwd=root)
         except OSError:
-            p = Popen(args=' '.join(args), shell=True)
+            p = Popen(args=' '.join(args), shell=True, cwd=root)
         p.wait()
-    chdir(main_dir)
+    return 1
 
 
 def _do_bat_calculation(
@@ -467,7 +466,8 @@ def _do_bat_calculation(
     fname_bat = _get_file(files, _rgx_bat)
     if fname_bat is not None:
         if not _calc_has_been_done(root) or force is True:
-            _bat_calculation(root=root, fname_bat=fname_bat, verbose=verbose)
+            return _bat_calculation(root=root, fname_bat=fname_bat,
+                                    verbose=verbose)
 
 
 def _print_progress(
@@ -494,6 +494,7 @@ def _print_progress(
 def _shell_and_bat(root, files, force, verbose):
     _do_shell_calculation(root=root, files=files,
                           force=force, verbose=verbose)
+    sleep(1)
     new_files = listdir(root)
     _do_bat_calculation(root=root, files=new_files,
                         force=force, verbose=verbose)
@@ -506,23 +507,23 @@ def _do_calculation_t(
 ):
     def _r(root_, files_):
         _shell_and_bat(root=root_, files=files_, force=force, verbose=False)
-    threads_opened = deque()
+    threads_opened = Queue(maxsize=_max_open_threads)
     todo_list = list(todo_walk)
     jobs_completed = 0
     jobs_total = len(todo_list)
     if progress:
         print _str_fmt_prog % z
-    while len(todo_list) > 0 or len(threads_opened) > 0:
+    while len(todo_list) > 0 or not threads_opened.empty():
         if progress:
             _print_progress(jobs_completed, jobs_total)
-        # if room, start new threads
-        while len(todo_list) > 0 and activeCount() < _max_open_threads:
+        # if room in queue, start new threads
+        while len(todo_list) > 0 and not threads_opened.full():
             root, files = todo_list.pop()
             t = Thread(target=_r, args=(root, files))
+            threads_opened.put(t)
             t.start()
-            threads_opened.append(t)
         # wait for completion of first thread
-        t = threads_opened.popleft()
+        t = threads_opened.get()
         t.join()
         jobs_completed += 1
     if progress:
@@ -547,7 +548,6 @@ def _do_calculation(todo_walk, z, force, verbose, progress,
 
 def do_calculations(
         a_range, z,
-        dirpath_main=DPATH_MAIN,
         dirpath_results=DPATH_RESULTS,
         dirname_fmt_z=DNAME_FMT_Z,
         _rgx_bat=_RGX_FNAME_BAT, _rgx_int=_RGX_FNAME_INT,
@@ -570,7 +570,6 @@ def do_calculations(
             todo_walk=todo, z=z,
             force=force, progress=progress, verbose=verbose,
         )
-    chdir(dirpath_main)
     return 1
 
 
