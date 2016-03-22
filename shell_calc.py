@@ -173,7 +173,7 @@ def _make_ans_file(
 
 
 def _get_model_space(a, n_component=True,
-                     shell_sp_map=MAP_SHELL_TO_MODEL_SPACES, ):
+                     shell_sp_map=MAP_SHELL_TO_MODEL_SPACES):
     """Returns the filename of the model space associated with the given
     mass number
 
@@ -396,27 +396,29 @@ def _calc_has_been_done(dirpath):
     return len(_files_with_ext_in_directory(dirpath, '.lpt')) > 1
 
 
-def _shell_calculation(root, fname_ans, verbose,
-                       _fname_stdout=_FNAME_SHELL_STDOUT,
-                       _fname_stderr=_FNAME_SHELL_STDERR):
+def _shell_calculation(
+        root, fname_ans, verbose,
+        _fname_stdout=_FNAME_SHELL_STDOUT, _fname_stderr=_FNAME_SHELL_STDERR
+):
     chdir(root)
     args = ['shell', '%s' % fname_ans]
     if not verbose:
         p = Popen(args=args, stdout=PIPE, stderr=PIPE)
         out, err = p.communicate()
-        fout = open(_fname_stdout, 'w')
+        fout = open(path.join(root, _fname_stdout), 'w')
         fout.write(out)
         fout.close()
-        ferr = open(_fname_stderr, 'w')
+        ferr = open(path.join(root, _fname_stderr), 'w')
         ferr.write(err)
         ferr.close()
     else:
         Popen(args=args)
 
 
-def _do_shell_calculation(files, root, force, verbose,
-                          _rgx_ans=_RGX_FNAME_ANS,
-                          _rgx_bat=_RGX_FNAME_BAT):
+def _do_shell_calculation(
+        files, root, force, verbose,
+        _rgx_ans=_RGX_FNAME_ANS, _rgx_bat=_RGX_FNAME_BAT
+):
     fname_ans = _get_file(files, _rgx_ans)
     fname_bat = _get_file(files, _rgx_bat)
     if fname_ans is not None:  # There is a *.ans file
@@ -424,9 +426,10 @@ def _do_shell_calculation(files, root, force, verbose,
             _shell_calculation(root=root, fname_ans=fname_ans, verbose=verbose)
 
 
-def _bat_calculation(root, fname_bat, verbose,
-                     _fname_stdout=_FNAME_BAT_STDOUT,
-                     _fname_stderr=_FNAME_BAT_STDERR):
+def _bat_calculation(
+        root, fname_bat, verbose,
+        _fname_stdout=_FNAME_BAT_STDOUT, _fname_stderr=_FNAME_BAT_STDERR
+):
     chdir(root)
     args = ['source', '%s' % fname_bat]
     if not verbose:
@@ -436,10 +439,10 @@ def _bat_calculation(root, fname_bat, verbose,
             p = Popen(args=' '.join(args), shell=True,
                       stdout=PIPE, stderr=PIPE)
         out, err = p.communicate()
-        fout = open(_fname_stdout, 'w')
+        fout = open(path.join(root, _fname_stdout), 'w')
         fout.write(out)
         fout.close()
-        ferr = open(_fname_stderr, 'w')
+        ferr = open(path.join(root, _fname_stderr), 'w')
         ferr.write(err)
         ferr.close()
     else:
@@ -449,18 +452,21 @@ def _bat_calculation(root, fname_bat, verbose,
             Popen(args=' '.join(args), shell=True)
 
 
-def _do_bat_calculation(root, files, force, verbose,
-                        _rgx_bat=_RGX_FNAME_BAT):
+def _do_bat_calculation(
+        root, files, force, verbose, _rgx_bat=_RGX_FNAME_BAT
+):
     fname_bat = _get_file(files, _rgx_bat)
     if fname_bat is not None:
         if not _calc_has_been_done(root) or force is True:
             _bat_calculation(root=root, fname_bat=fname_bat, verbose=verbose)
 
 
-def _print_progress(completed, total, end=False,
-                    bar_len=WIDTH_PROGRESS_BAR,
-                    total_width=WIDTH_TERM,
-                    text_fmt=STR_PROGRESS_BAR):
+def _print_progress(
+        completed, total, end=False,
+        bar_len=WIDTH_PROGRESS_BAR,
+        total_width=WIDTH_TERM,
+        text_fmt=STR_PROGRESS_BAR
+):
     if total > 0:
         text = text_fmt % (floor(completed), total)
         p = completed / total
@@ -544,8 +550,10 @@ def do_calculations(
     return 1
 
 
-def do_all_calculations(arange, zrange, n_component=2, formalism='pn',
-                        dirpath_results=DPATH_RESULTS, **kwargs):
+def do_all_calculations(
+        arange, zrange, n_component=2, formalism='pn',
+        dirpath_results=DPATH_RESULTS, **kwargs
+):
     zrange = list(filter(lambda z0: z0 >= 1, zrange))
     for z in zrange:
         arange0 = list(filter(lambda a: a >= z, arange))
