@@ -403,6 +403,7 @@ def _shell_calculation(
         root, fname_ans, verbose,
         _fname_stdout=_FNAME_SHELL_STDOUT, _fname_stderr=_FNAME_SHELL_STDERR
 ):
+    main_dir = getcwd()
     chdir(root)
     args = ['shell', '%s' % fname_ans]
     if not verbose:
@@ -417,6 +418,7 @@ def _shell_calculation(
     else:
         p = Popen(args=args)
         p.wait()
+    chdir(main_dir)
 
 
 def _do_shell_calculation(
@@ -434,6 +436,7 @@ def _bat_calculation(
         root, fname_bat, verbose,
         _fname_stdout=_FNAME_BAT_STDOUT, _fname_stderr=_FNAME_BAT_STDERR
 ):
+    main_dir = getcwd()
     chdir(root)
     args = ['source', '%s' % fname_bat]
     if not verbose:
@@ -455,6 +458,7 @@ def _bat_calculation(
         except OSError:
             p = Popen(args=' '.join(args), shell=True)
         p.wait()
+    chdir(main_dir)
 
 
 def _do_bat_calculation(
@@ -487,17 +491,21 @@ def _print_progress(
         stdout.flush()
 
 
+def _shell_and_bat(root, files, force, verbose):
+    _do_shell_calculation(root=root, files=files,
+                          force=force, verbose=verbose)
+    new_files = listdir(root)
+    _do_bat_calculation(root=root, files=new_files,
+                        force=force, verbose=verbose)
+
+
 def _do_calculation_t(
         todo_walk, z, force, progress,
         _max_open_threads=MAX_OPEN_THREADS,
         _str_fmt_prog=STR_FMT_PROGRESS_HEAD
 ):
     def _r(root_, files_):
-        _do_shell_calculation(root=root_, files=files_,
-                              force=force, verbose=False)
-        new_files = listdir(root_)
-        _do_bat_calculation(root=root_, files=new_files,
-                            force=force, verbose=False)
+        _shell_and_bat(root=root_, files=files_, force=force, verbose=False)
     threads_opened = deque()
     todo_list = list(todo_walk)
     jobs_completed = 0
@@ -531,17 +539,8 @@ def _do_calculation(todo_walk, z, force, verbose, progress,
         # do shell calculation
         if progress:
             _print_progress(jobs_completed, jobs_total)
-        _do_shell_calculation(root=root, files=files, force=force,
-                              verbose=verbose)
-        jobs_completed += .5
-        # update files list
-        files = listdir(root)
-        # do bat calculation
-        if progress:
-            _print_progress(jobs_completed, jobs_total)
-        _do_bat_calculation(root=root, files=files, force=force,
-                            verbose=verbose)
-        jobs_completed += .5
+        _shell_and_bat(root=root, files=files, force=force, verbose=verbose)
+        jobs_completed += 1
     if progress:
         _print_progress(jobs_completed, jobs_total, end=True)
 
