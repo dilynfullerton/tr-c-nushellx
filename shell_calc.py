@@ -412,7 +412,8 @@ def _shell_calculation(
         ferr.write(err)
         ferr.close()
     else:
-        Popen(args=args)
+        p = Popen(args=args)
+        p.wait()
 
 
 def _do_shell_calculation(
@@ -447,9 +448,10 @@ def _bat_calculation(
         ferr.close()
     else:
         try:
-            Popen(args=args)
+            p = Popen(args=args)
         except OSError:
-            Popen(args=' '.join(args), shell=True)
+            p = Popen(args=' '.join(args), shell=True)
+        p.wait()
 
 
 def _do_bat_calculation(
