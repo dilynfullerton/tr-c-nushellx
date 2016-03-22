@@ -516,7 +516,7 @@ def _do_calculation_t(
         if progress:
             _print_progress(jobs_completed, jobs_total)
         # if room, start new threads
-        while activeCount() < _max_open_threads and len(todo_list) > 0:
+        while len(todo_list) > 0 and activeCount() < _max_open_threads:
             root, files = todo_list.pop()
             t = Thread(target=_r, args=(root, files))
             t.start()
