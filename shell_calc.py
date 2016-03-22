@@ -35,7 +35,7 @@ from math import floor
 from os import getcwd, path, walk, mkdir, link, rmdir, listdir, remove
 from subprocess import Popen, PIPE
 from sys import argv, stdout
-from threading import Thread, activeCount
+from threading import Thread
 from time import sleep
 
 # CONSTANTS
