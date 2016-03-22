@@ -491,24 +491,24 @@ def _do_calculation_t(todo_walk, z, force, progress,
         _do_bat_calculation(root=root_, files=new_files,
                             force=force, verbose=False)
     # open threads
-    active_threads = list()
+    open_threads = list()
     for root, files in todo_walk:
         t = Thread(target=_r, args=(root, files))
         t.start()
-        active_threads.append(t)
+        open_threads.append(t)
     # progress bar
     jobs_completed = 0
-    jobs_total = len(active_threads)
+    jobs_total = len(open_threads)
     if progress:
         print _str_fmt_prog % z
     # join threads
-    while len(active_threads) > 0:
+    while len(open_threads) > 0:
         if progress:
             _print_progress(jobs_completed, jobs_total)
-        t = active_threads.pop()
+        t = open_threads.pop()
         t.join()
         if t.isAlive():
-            active_threads.append(t)
+            open_threads.append(t)
         else:
             jobs_completed += 1
     if progress:
