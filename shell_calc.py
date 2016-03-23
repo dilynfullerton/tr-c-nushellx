@@ -36,7 +36,6 @@ from os import getcwd, path, walk, mkdir, link, rmdir, listdir, remove
 from subprocess import Popen, PIPE
 from sys import argv, stdout
 from threading import Thread
-from time import sleep
 
 # CONSTANTS
 # .ans file
@@ -494,7 +493,6 @@ def _print_progress(
 def _shell_and_bat(root, files, force, verbose):
     _do_shell_calculation(root=root, files=files,
                           force=force, verbose=verbose)
-    sleep(1)
     new_files = listdir(root)
     _do_bat_calculation(root=root, files=new_files,
                         force=force, verbose=verbose)
