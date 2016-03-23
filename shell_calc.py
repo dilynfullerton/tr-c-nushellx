@@ -588,7 +588,7 @@ def do_all_calculations(
 
 if __name__ == "__main__":
     user_args = argv[1:]
-    if re.match('^-f$', user_args[0].lower()):
+    if '-f' == user_args[0].lower():
         force0 = True
         user_args = user_args[1:]
     else:
