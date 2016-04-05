@@ -4,3 +4,5 @@
 /sources*
 *.pyc
 /old
+sync-scripts.sh~
+sync-scripts.sh
