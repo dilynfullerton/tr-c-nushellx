@@ -110,9 +110,7 @@ class NoAvailableModelSpaceException(Exception):
 
 
 def _mass_number_from_filename(
-        filename, split_char=CHR_FILENAME_SPLIT,
-        regex_mass_num=RGX_MASS_NUM
-):
+        filename, split_char=CHR_FILENAME_SPLIT, regex_mass_num=RGX_MASS_NUM):
     filename_elts = reversed(_filename_elts_list(filename, split_char))
     mass = _elt_from_felts(filename_elts, regex_mass_num)
     if mass is not None:
@@ -170,14 +168,15 @@ def _make_ans_file(
     """
     ans_str = nl.join(lines) % (
         option, neig, sp_file, restriction, interaction_name,
-        num_protons, num_nucleons, j_min, j_max, j_del, parity, end_option)
+        num_protons, num_nucleons, j_min, j_max, j_del, parity, end_option
+    )
     f = open(file_path, 'w')
     f.writelines(ans_str)
     f.close()
 
 
-def _get_model_space(a, n_component=True,
-                     shell_sp_map=MAP_SHELL_TO_MODEL_SPACES):
+def _get_model_space(
+        a, n_component=True, shell_sp_map=MAP_SHELL_TO_MODEL_SPACES):
     """Returns the filename of the model space associated with the given
     mass number
 
@@ -200,8 +199,7 @@ def _get_model_space(a, n_component=True,
         else:
             s = ''
         raise NoAvailableModelSpaceException(
-            'No%s model space available for A = %d' % (s, a)
-        )
+            'No%s model space available for A = %d' % (s, a))
 
 
 def _make_sp_file(src, dst, formalism):
@@ -291,23 +289,23 @@ def make_results_dir(
                 mkdir(new_dir)
             # link .int file
             interaction_name = 'A%d' % mass_num
-            interaction_file_path = path.join(new_dir,
-                                              interaction_name + '.int')
+            interaction_file_path = path.join(
+                new_dir, interaction_name + '.int')
             if not path.exists(interaction_file_path):
                 link(path.join(cwd_sources, ff), interaction_file_path)
             elif force:
                 remove(interaction_file_path)
                 link(path.join(cwd_sources, ff), interaction_file_path)
             # write .sp file
-            fname_model_space = _get_model_space(a=mass_num,
-                                                 n_component=ncomponent)
+            fname_model_space = _get_model_space(
+                a=mass_num, n_component=ncomponent)
             sp_filename = '%s.sp' % fname_model_space
             sp_filename_fin = '%s.sp' % _fname_model_space_out
             sp_path_src = path.join(dirpath_templates, sp_filename)
             sp_path_dst = path.join(new_dir, sp_filename_fin)
             if force or not path.exists(sp_path_dst):
-                _make_sp_file(src=sp_path_src, dst=sp_path_dst,
-                              formalism=formalism)
+                _make_sp_file(
+                    src=sp_path_src, dst=sp_path_dst, formalism=formalism)
             # create .ans file
             ans_filename = 'A%d.ans' % mass_num
             ans_file_path = path.join(new_dir, ans_filename)
@@ -322,7 +320,8 @@ def make_results_dir(
                     interaction_name=interaction_name,
                     option='lpe', neig=0, restriction='n',
                     num_protons=z, num_nucleons=mass_num,
-                    j_min=j_min, j_max=j_max, j_del=1.0, parity=parity)
+                    j_min=j_min, j_max=j_max, j_del=1.0, parity=parity
+                )
 
 
 def make_usdb_dir(
@@ -363,9 +362,9 @@ def make_usdb_dir(
                 j_min, j_max, parity = 0.5, 3.5, 0
             _make_ans_file(
                 file_path=ans_file_path, sp_file=_fname_model_space,
-                num_nucleons=mass_num, num_protons=z,
-                interaction_name='usdb',
-                j_min=j_min, j_max=j_max, j_del=1.0, parity=parity, )
+                num_nucleons=mass_num, num_protons=z, interaction_name='usdb',
+                j_min=j_min, j_max=j_max, j_del=1.0, parity=parity,
+            )
 
 
 def remove_empty_directories(root, remove_root=False):
@@ -428,8 +427,8 @@ def _do_shell_calculation(
     fname_bat = _get_file(files, _rgx_bat)
     if fname_ans is not None:  # There is a *.ans file
         if fname_bat is None or force:
-            return _shell_calculation(root=root, fname_ans=fname_ans,
-                                      verbose=verbose)
+            return _shell_calculation(
+                root=root, fname_ans=fname_ans, verbose=verbose)
 
 
 def _bat_calculation(
@@ -465,8 +464,8 @@ def _do_bat_calculation(
     fname_bat = _get_file(files, _rgx_bat)
     if fname_bat is not None:
         if not _calc_has_been_done(root) or force is True:
-            return _bat_calculation(root=root, fname_bat=fname_bat,
-                                    verbose=verbose)
+            return _bat_calculation(
+                root=root, fname_bat=fname_bat, verbose=verbose)
 
 
 def _print_progress(
@@ -491,11 +490,11 @@ def _print_progress(
 
 
 def _shell_and_bat(root, files, force, verbose):
-    _do_shell_calculation(root=root, files=files,
-                          force=force, verbose=verbose)
+    _do_shell_calculation(
+        root=root, files=files, force=force, verbose=verbose)
     new_files = listdir(root)
-    _do_bat_calculation(root=root, files=new_files,
-                        force=force, verbose=verbose)
+    _do_bat_calculation(
+        root=root, files=new_files, force=force, verbose=verbose)
 
 
 def _do_calculation_t(
@@ -578,9 +577,10 @@ def do_all_calculations(
     zrange = list(filter(lambda z0: z0 >= 1, zrange))
     for z in zrange:
         arange0 = list(filter(lambda a: a >= z, arange))
-        make_results_dir(a_range=arange0, z=z,
-                         ncomponent=n_component,
-                         formalism=formalism, **kwargs)
+        make_results_dir(
+            a_range=arange0, z=z, ncomponent=n_component, formalism=formalism,
+            **kwargs
+        )
         make_usdb_dir(a_range=arange0, z=z, **kwargs)
         remove_empty_directories(dirpath_results, remove_root=False)
         do_calculations(a_range=arange0, z=z, **kwargs)
