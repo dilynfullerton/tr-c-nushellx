@@ -4,5 +4,4 @@
 /sources*
 *.pyc
 /old
-*.sh
 *~
