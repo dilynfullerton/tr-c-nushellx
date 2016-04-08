@@ -35,7 +35,7 @@ from math import floor
 from os import getcwd, path, walk, mkdir, link, rmdir, listdir, remove
 from subprocess import Popen, PIPE
 from sys import argv, stdout
-from threading import Thread
+from threading import Thread, currentThread
 
 # CONSTANTS
 # .ans file
@@ -506,27 +506,36 @@ def _do_calculation_t(
         _max_open_threads=MAX_OPEN_THREADS,
         _str_fmt_prog=STR_FMT_PROGRESS_HEAD
 ):
-    def _r(root_, files_):
+    def _r(root_, files_, q):
         _shell_and_bat(root=root_, files=files_, force=force, verbose=False)
-    threads_opened = Queue(maxsize=_max_open_threads)
+        q.put(currentThread())
+
     todo_list = list(todo_walk)
+    active_list = list()
+    done_queue = Queue()
+
     jobs_completed = 0
     jobs_total = len(todo_list)
+
     if progress:
         print _str_fmt_prog % z
-    while len(todo_list) > 0 or not threads_opened.empty():
-        if progress:
-            _print_progress(jobs_completed, jobs_total)
-        # if room in queue, start new threads
-        while len(todo_list) > 0 and not threads_opened.full():
+        _print_progress(jobs_completed, jobs_total)
+    while len(todo_list) > 0 or len(active_list) > 0:
+        # if room, start new threads
+        while len(todo_list) > 0 and len(active_list) < _max_open_threads:
             root, files = todo_list.pop()
-            t = Thread(target=_r, args=(root, files))
-            threads_opened.put(t)
+            t = Thread(target=_r, args=(root, files, done_queue))
+            active_list.append(t)
             t.start()
-        # wait for completion of first thread
-        t = threads_opened.get()
-        t.join()
-        jobs_completed += 1
+        # remove any threads that have finished
+        if not done_queue.empty():
+            while not done_queue.empty():
+                t = done_queue.get()
+                t.join()
+                active_list.remove(t)
+                jobs_completed += 1
+            if progress:
+                _print_progress(jobs_completed, jobs_total)
     if progress:
         _print_progress(jobs_completed, jobs_total, end=True)
 
