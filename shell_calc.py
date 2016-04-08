@@ -517,7 +517,7 @@ def _do_calculation_t(
     jobs_completed = 0
     jobs_total = len(todo_list)
 
-    if progress:
+    if progress and jobs_total > 0:
         print _str_fmt_prog % z
         _print_progress(jobs_completed, jobs_total)
     while len(todo_list) > 0 or len(active_list) > 0:
@@ -545,7 +545,7 @@ def _do_calculation(todo_walk, z, force, verbose, progress,
                     _str_fmt_prog=STR_FMT_PROGRESS_HEAD):
     jobs_completed = 0
     jobs_total = len(todo_walk)
-    if progress:
+    if progress and jobs_total > 0:
         print _str_fmt_prog % z
     for root, files in todo_walk:
         # do shell calculation
