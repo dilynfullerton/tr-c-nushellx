@@ -407,12 +407,14 @@ def _shell_calculation(
     if not verbose:
         p = Popen(args=args, stdout=PIPE, stderr=PIPE, cwd=root)
         out, err = p.communicate()
-        fout = open(path.join(root, _fname_stdout), 'w')
-        fout.write(out)
-        fout.close()
-        ferr = open(path.join(root, _fname_stderr), 'w')
-        ferr.write(err)
-        ferr.close()
+        if len(out) > 0:
+            fout = open(path.join(root, _fname_stdout), 'w')
+            fout.write(out)
+            fout.close()
+        if len(err) > 0:
+            ferr = open(path.join(root, _fname_stderr), 'w')
+            ferr.write(err)
+            ferr.close()
     else:
         p = Popen(args=args, cwd=root)
         p.wait()
@@ -443,12 +445,14 @@ def _bat_calculation(
             p = Popen(args=' '.join(args), shell=True,
                       stdout=PIPE, stderr=PIPE, cwd=root)
         out, err = p.communicate()
-        fout = open(path.join(root, _fname_stdout), 'w')
-        fout.write(out)
-        fout.close()
-        ferr = open(path.join(root, _fname_stderr), 'w')
-        ferr.write(err)
-        ferr.close()
+        if len(out) > 0:
+            fout = open(path.join(root, _fname_stdout), 'w')
+            fout.write(out)
+            fout.close()
+        if len(err) > 0:
+            ferr = open(path.join(root, _fname_stderr), 'w')
+            ferr.write(err)
+            ferr.close()
     else:
         try:
             p = Popen(args=args, cwd=root)
@@ -463,7 +467,7 @@ def _do_bat_calculation(
 ):
     fname_bat = _get_file(files, _rgx_bat)
     if fname_bat is not None:
-        if not _calc_has_been_done(root) or force is True:
+        if force or not _calc_has_been_done(root):
             return _bat_calculation(
                 root=root, fname_bat=fname_bat, verbose=verbose)
 
