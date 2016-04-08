@@ -538,6 +538,7 @@ def _do_calculation_t(
                 _print_progress(jobs_completed, jobs_total)
     if progress:
         _print_progress(jobs_completed, jobs_total, end=True)
+    return jobs_completed == jobs_total
 
 
 def _do_calculation(todo_walk, z, force, verbose, progress,
