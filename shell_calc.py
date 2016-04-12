@@ -52,6 +52,12 @@ FLINES_FMT_ANS = [
     '--------------------------------------------------',
     '%-3s                  ! option'
 ]
+JMIN_EVEN = 0.0
+JMAX_EVEN = 4.0
+PARITY_EVEN = 0
+JMIN_ODD = JMIN_EVEN + 0.5
+JMAX_ODD = JMAX_EVEN - 0.5
+PARITY_ODD = 1
 
 # directories
 DPATH_MAIN = getcwd()
@@ -224,6 +230,8 @@ def _make_sp_file(src, dst, formalism):
 
 def make_results_dir(
         a_range, z, ncomponent, formalism,
+        jmin_even=JMIN_EVEN, jmax_even=JMAX_EVEN,
+        jmin_odd=JMIN_ODD, jmax_odd=JMAX_ODD,
         dirpath_sources=DPATH_SOURCES,
         dirpath_results=DPATH_RESULTS,
         dirpath_templates=DPATH_TEMPLATES,
@@ -246,6 +254,10 @@ def make_results_dir(
     :param formalism: formalism under which to run NuShellX.
         't'  -> isospin formalism
         'pn' -> proton-neutron formalism
+    :param jmin_even: *.ans parameter jmin for even A
+    :param jmax_even: *.ans parameter jmax for even A
+    :param jmin_odd: *.ans parameter jmin for odd A
+    :param jmax_odd: *.ans parameter jmax for odd A
     :param dirpath_sources: Directory in which source files are stored
     :param dirpath_results: Directory in which results are to be generated
     :param dirpath_templates: Directory in which *.sp templates files
@@ -311,9 +323,9 @@ def make_results_dir(
             ans_file_path = path.join(new_dir, ans_filename)
             if force or not path.exists(ans_file_path):
                 if mass_num % 2 == 0:  # even
-                    j_min, j_max, parity = 0.0, 4.0, 0
+                    j_min, j_max, parity = jmin_even, jmax_even, PARITY_EVEN
                 else:  # odd
-                    j_min, j_max, parity = 0.5, 3.5, 1
+                    j_min, j_max, parity = jmin_odd, jmax_odd, PARITY_ODD
                 _make_ans_file(
                     file_path=ans_file_path,
                     sp_file=_fname_model_space_out,
@@ -326,6 +338,8 @@ def make_results_dir(
 
 def make_usdb_dir(
         a_range, z,
+        jmin_even=JMIN_EVEN, jmax_even=JMAX_EVEN,
+        jmin_odd=JMIN_ODD, jmax_odd=JMAX_ODD,
         dirpath_results=DPATH_RESULTS,
         dirpath_templates=DPATH_TEMPLATES,
         _dirname_usdb=DNAME_USDB,
@@ -357,9 +371,9 @@ def make_usdb_dir(
         ans_file_path = path.join(dirname, ans_filename)
         if force or not path.exists(ans_file_path):
             if mass_num % 2 == 0:  # even
-                j_min, j_max, parity = 0.0, 4.0, 0
+                j_min, j_max, parity = jmin_even, jmax_even, PARITY_EVEN
             else:
-                j_min, j_max, parity = 0.5, 3.5, 0
+                j_min, j_max, parity = jmin_odd, jmax_odd, PARITY_ODD
             _make_ans_file(
                 file_path=ans_file_path, sp_file=_fname_model_space,
                 num_nucleons=mass_num, num_protons=z, interaction_name='usdb',
@@ -586,16 +600,26 @@ def do_calculations(
 
 def do_all_calculations(
         arange, zrange, n_component=2, formalism='pn',
-        dirpath_results=DPATH_RESULTS, **kwargs
+        dirpath_results=DPATH_RESULTS,
+        jmin_even=JMIN_EVEN, jmax_even=JMAX_EVEN,
+        jmin_odd=JMIN_ODD, jmax_odd=JMAX_ODD,
+        **kwargs
 ):
     zrange = list(filter(lambda z0: z0 >= 1, zrange))
     for z in zrange:
         arange0 = list(filter(lambda a: a >= z, arange))
         make_results_dir(
             a_range=arange0, z=z, ncomponent=n_component, formalism=formalism,
+            jmin_even=jmin_even, jmax_even=jmax_even,
+            jmin_odd=jmin_odd, jmax_odd=jmax_odd,
             **kwargs
         )
-        make_usdb_dir(a_range=arange0, z=z, **kwargs)
+        make_usdb_dir(
+            a_range=arange0, z=z,
+            jmin_even=jmin_even, jmax_even=jmax_even,
+            jmin_odd=jmin_odd, jmax_odd=jmax_odd,
+            **kwargs
+        )
         remove_empty_directories(dirpath_results, remove_root=False)
         do_calculations(a_range=arange0, z=z, **kwargs)
 
