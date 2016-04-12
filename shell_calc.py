@@ -74,10 +74,10 @@ FNAME_MODEL_SPACE_SD_N = 'tmp-sd-n'
 FNAME_MODEL_SPACE_SD_PN = 'tmp-sd-pn'
 FNAME_MODEL_SPACE_OUT = 'aaa'
 FNAME_MODEL_SPACE_USDB = 'sd'
-_FNAME_SHELL_STDOUT = '__stdout_shell__.txt'
-_FNAME_SHELL_STDERR = '__stderr_shell__.txt'
-_FNAME_BAT_STDOUT = '__stdout_bat__.txt'
-_FNAME_BAT_STDERR = '__stderr_bat__.txt'
+_FNAME_STDOUT_SHELL = '__stdout_shell__.txt'
+_FNAME_STDERR_SHELL = '__stderr_shell__.txt'
+_FNAME_STDOUT_BAT = '__stdout_bat__.txt'
+_FNAME_STDERR_BAT = '__stderr_bat__.txt'
 
 # file parsing
 RGX_MASS_NUM = 'A\d+'
@@ -153,10 +153,9 @@ def _make_ans_file(
         file_path, sp_file, num_nucleons, interaction_name='usdb',
         option='lpe', neig=0, restriction='n', num_protons=8,
         j_min=0.0, j_max=4.0, j_del=1.0, parity=0, end_option='st',
-        lines=FLINES_FMT_ANS, nl='\n'
+        lines=FLINES_FMT_ANS,
 ):
     """Create a .ans file with the given specifications
-    :param nl: line separator
     :param lines: list of unformatted file lines
     :param end_option: final option to execute
     :param parity: parity
@@ -172,7 +171,7 @@ def _make_ans_file(
     :param sp_file: model space file name
     :param file_path: path to ans file
     """
-    ans_str = nl.join(lines) % (
+    ans_str = '\n'.join(lines) % (
         option, neig, sp_file, restriction, interaction_name,
         num_protons, num_nucleons, j_min, j_max, j_del, parity, end_option
     )
@@ -415,7 +414,7 @@ def _calc_has_been_done(dirpath):
 
 def _shell_calculation(
         root, fname_ans, verbose,
-        _fname_stdout=_FNAME_SHELL_STDOUT, _fname_stderr=_FNAME_SHELL_STDERR
+        _fname_stdout=_FNAME_STDOUT_SHELL, _fname_stderr=_FNAME_STDERR_SHELL
 ):
     args = ['shell', '%s' % fname_ans]
     if not verbose:
@@ -449,7 +448,7 @@ def _do_shell_calculation(
 
 def _bat_calculation(
         root, fname_bat, verbose,
-        _fname_stdout=_FNAME_BAT_STDOUT, _fname_stderr=_FNAME_BAT_STDERR
+        _fname_stdout=_FNAME_STDOUT_BAT, _fname_stderr=_FNAME_STDERR_BAT
 ):
     args = ['source', '%s' % fname_bat]
     if not verbose:
