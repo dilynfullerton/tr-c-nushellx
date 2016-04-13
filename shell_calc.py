@@ -584,8 +584,6 @@ def do_calculations(
             a = _mass_number_from_filename(filename=fname_int)
             if a in a_range:
                 todo.append((root, files))
-    for t in sorted(todo):
-        print '  ' + sep.join(t[0].split(sep)[-3:])
     if threading and len(todo) > 1:
         return _do_calculation_t(
             todo_walk=todo, z=z, force=force, progress=progress)
