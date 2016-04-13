@@ -32,7 +32,7 @@ import re
 from Queue import Queue
 from collections import deque
 from math import floor
-from os import getcwd, path, walk, mkdir, link, rmdir, listdir, remove
+from os import getcwd, path, walk, mkdir, link, rmdir, listdir, remove, makedirs
 from subprocess import Popen, PIPE
 from sys import argv, stdout
 from threading import Thread, currentThread
@@ -82,7 +82,7 @@ _FNAME_STDERR_BAT = '__stderr_bat__.txt'
 # file parsing
 RGX_MASS_NUM = 'A\d+'
 _RGX_FNAME_INT = '.*\.int'
-_RGX_FNAME_ANS = '.*\.ans'
+_RGX_FNAME_ANS = RGX_MASS_NUM + '\.ans'
 _RGX_FNAME_BAT = RGX_MASS_NUM + '\.bat'
 CHR_FILENAME_SPLIT = '_'
 
@@ -275,7 +275,7 @@ def make_results_dir(
     if not path.exists(dirpath_sources):
         raise SourcesDirDoesNotExistException()
     if not path.exists(results_subdir):
-        mkdir(results_subdir)
+        makedirs(results_subdir)
 
     todo_sources = deque([dirpath_sources])
     todo_results = deque([results_subdir])
@@ -284,49 +284,47 @@ def make_results_dir(
         cwd_sources = todo_sources.popleft()
         cwd_results = todo_results.popleft()
         root, dirs, files = walk(cwd_sources).next()
-        for dd in dirs:
-            next_sources = path.join(cwd_sources, dd)
-            next_results = path.join(cwd_results, dd)
+        for dname in dirs:
+            next_sources = path.join(cwd_sources, dname)
+            next_results = path.join(cwd_results, dname)
             if not path.exists(next_results):
                 mkdir(next_results)
             todo_sources.append(next_sources)
             todo_results.append(next_results)
-        for ff in filter(lambda f: re.match(_regex_int, f) is not None, files):
-            mass_num = _mass_number_from_filename(ff)
+        for fname in filter(lambda f: re.match(_regex_int, f), files):
+            mass_num = _mass_number_from_filename(fname)
             if a_range is not None and mass_num not in a_range:
                 continue
-            new_dir = path.join(cwd_results, _fname_without_extension(ff))
+            new_dir = path.join(cwd_results, _fname_without_extension(fname))
             if not path.exists(new_dir):
                 mkdir(new_dir)
             # link .int file
             interaction_name = 'A%d' % mass_num
-            interaction_file_path = path.join(
+            fpath_int_dst = path.join(
                 new_dir, interaction_name + '.int')
-            if not path.exists(interaction_file_path):
-                link(path.join(cwd_sources, ff), interaction_file_path)
-            elif force:
-                remove(interaction_file_path)
-                link(path.join(cwd_sources, ff), interaction_file_path)
+            if force or not path.exists(fpath_int_dst):
+                if path.exists(fpath_int_dst):
+                    remove(fpath_int_dst)
+                link(path.join(cwd_sources, fname), fpath_int_dst)
             # write .sp file
             fname_model_space = _get_model_space(
                 a=mass_num, n_component=ncomponent)
-            sp_filename = '%s.sp' % fname_model_space
-            sp_filename_fin = '%s.sp' % _fname_model_space_out
-            sp_path_src = path.join(dirpath_templates, sp_filename)
-            sp_path_dst = path.join(new_dir, sp_filename_fin)
-            if force or not path.exists(sp_path_dst):
+            fname_sp_src = '%s.sp' % fname_model_space
+            fname_sp_dst = '%s.sp' % _fname_model_space_out
+            fpath_sp_src = path.join(dirpath_templates, fname_sp_src)
+            fpath_sp_dst = path.join(new_dir, fname_sp_dst)
+            if force or not path.exists(fpath_sp_dst):
                 _make_sp_file(
-                    src=sp_path_src, dst=sp_path_dst, formalism=formalism)
+                    src=fpath_sp_src, dst=fpath_sp_dst, formalism=formalism)
             # create .ans file
-            ans_filename = 'A%d.ans' % mass_num
-            ans_file_path = path.join(new_dir, ans_filename)
-            if force or not path.exists(ans_file_path):
+            fpath_ans = path.join(new_dir, 'A%d.ans' % mass_num)
+            if force or not path.exists(fpath_ans):
                 if mass_num % 2 == 0:  # even
                     j_min, j_max, parity = jmin_even, jmax_even, PARITY_EVEN
                 else:  # odd
                     j_min, j_max, parity = jmin_odd, jmax_odd, PARITY_ODD
                 _make_ans_file(
-                    file_path=ans_file_path,
+                    file_path=fpath_ans,
                     sp_file=_fname_model_space_out,
                     interaction_name=interaction_name,
                     option='lpe', neig=0, restriction='n',
@@ -350,31 +348,29 @@ def make_usdb_dir(
     results_subdir = path.join(dirpath_results, 'Z%d' % z)
     usdb_dirpath = path.join(results_subdir, _dirname_usdb)
     if not path.exists(usdb_dirpath):
-        mkdir(usdb_dirpath)
+        makedirs(usdb_dirpath)
     for mass_num in a_range:
         if mass_num not in _usdb_arange:
             continue
-        dirname = path.join(usdb_dirpath, 'A%d' % mass_num)
-        if not path.exists(dirname):
-            mkdir(dirname)
+        dname = path.join(usdb_dirpath, 'A%d' % mass_num)
+        if not path.exists(dname):
+            mkdir(dname)
         # link .sp file
-        sp_filename = '%s.sp' % _fname_model_space
-        sp_file_path = path.join(dirname, sp_filename)
-        if not path.exists(sp_file_path):
-            link(path.join(dirpath_templates, sp_filename), sp_file_path)
-        elif force:
-            remove(sp_file_path)
-            link(path.join(dirpath_templates, sp_filename), sp_file_path)
+        fname_sp = '%s.sp' % _fname_model_space
+        fpath_sp = path.join(dname, fname_sp)
+        if force or not path.exists(fpath_sp):
+            if path.exists(fpath_sp):
+                remove(fpath_sp)
+            link(path.join(dirpath_templates, fname_sp), fpath_sp)
         # create .ans file
-        ans_filename = 'A%d.ans' % mass_num
-        ans_file_path = path.join(dirname, ans_filename)
-        if force or not path.exists(ans_file_path):
+        fpath_ans = path.join(dname, 'A%d.ans' % mass_num)
+        if force or not path.exists(fpath_ans):
             if mass_num % 2 == 0:  # even
                 j_min, j_max, parity = jmin_even, jmax_even, PARITY_EVEN
             else:
                 j_min, j_max, parity = jmin_odd, jmax_odd, PARITY_ODD
             _make_ans_file(
-                file_path=ans_file_path, sp_file=_fname_model_space,
+                file_path=fpath_ans, sp_file=_fname_model_space,
                 num_nucleons=mass_num, num_protons=z, interaction_name='usdb',
                 j_min=j_min, j_max=j_max, j_del=1.0, parity=parity,
             )
@@ -602,7 +598,7 @@ def do_all_calculations(
         dirpath_results=DPATH_RESULTS,
         jmin_even=JMIN_EVEN, jmax_even=JMAX_EVEN,
         jmin_odd=JMIN_ODD, jmax_odd=JMAX_ODD,
-        **kwargs
+        force=False, **kwargs
 ):
     zrange = list(filter(lambda z0: z0 >= 1, zrange))
     for z in zrange:
@@ -611,16 +607,16 @@ def do_all_calculations(
             a_range=arange0, z=z, ncomponent=n_component, formalism=formalism,
             jmin_even=jmin_even, jmax_even=jmax_even,
             jmin_odd=jmin_odd, jmax_odd=jmax_odd,
-            **kwargs
+            force=force, **kwargs
         )
         make_usdb_dir(
             a_range=arange0, z=z,
             jmin_even=jmin_even, jmax_even=jmax_even,
             jmin_odd=jmin_odd, jmax_odd=jmax_odd,
-            **kwargs
+            force=force, **kwargs
         )
         remove_empty_directories(dirpath_results, remove_root=False)
-        do_calculations(a_range=arange0, z=z, **kwargs)
+        do_calculations(a_range=arange0, z=z, force=force, **kwargs)
 
 
 if __name__ == "__main__":
@@ -634,24 +630,26 @@ if __name__ == "__main__":
         ncomponent0 = int(user_args[0])
         formalism0 = user_args[1]
         amin, zmin = [int(x) for x in user_args[2:]]
-        do_all_calculations(arange=[amin], zrange=[zmin],
-                            n_component=ncomponent0, formalism=formalism0,
-                            force=force0)
+        do_all_calculations(
+            arange=[amin], zrange=[zmin], n_component=ncomponent0,
+            formalism=formalism0, force=force0
+        )
     elif len(user_args) == 5:
         ncomponent0 = int(user_args[0])
         formalism0 = user_args[1]
         amin, amax, zmin = [int(x) for x in user_args[2:]]
-        do_all_calculations(arange=range(amin, amax+1), zrange=[zmin],
-                            n_component=ncomponent0, formalism=formalism0,
-                            force=force0)
+        do_all_calculations(
+            arange=range(amin, amax+1), zrange=[zmin], n_component=ncomponent0,
+            formalism=formalism0, force=force0
+        )
     elif len(user_args) == 6:
         ncomponent0 = int(user_args[0])
         formalism0 = user_args[1]
         amin, amax, zmin, zmax = [int(x) for x in user_args[2:]]
-        do_all_calculations(arange=range(amin, amax+1),
-                            zrange=range(zmin, zmax+1),
-                            n_component=ncomponent0, formalism=formalism0,
-                            force=force0)
+        do_all_calculations(
+            arange=range(amin, amax+1), zrange=range(zmin, zmax+1),
+            n_component=ncomponent0, formalism=formalism0, force=force0
+        )
     else:
         print ('User entered %d arguments. ' % (len(user_args),) +
                'shell_calc.py requires 4-6 arguments.')
