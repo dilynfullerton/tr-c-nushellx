@@ -32,7 +32,7 @@ import re
 from Queue import Queue
 from collections import deque
 from math import floor
-from os import getcwd, path, walk, mkdir, link, rmdir, listdir, remove, makedirs
+from os import getcwd, path, walk, mkdir, link, rmdir, listdir, remove, makedirs, sep
 from subprocess import Popen, PIPE
 from sys import argv, stdout
 from threading import Thread, currentThread
@@ -81,7 +81,7 @@ _FNAME_STDERR_BAT = '__stderr_bat__.txt'
 
 # file parsing
 RGX_MASS_NUM = 'A\d+'
-_RGX_FNAME_INT = '.*\.int'
+_RGX_FNAME_INT = '(A\d+|usdb)\.int'
 _RGX_FNAME_ANS = RGX_MASS_NUM + '\.ans'
 _RGX_FNAME_BAT = RGX_MASS_NUM + '\.bat'
 CHR_FILENAME_SPLIT = '_'
@@ -389,7 +389,7 @@ def remove_empty_directories(root, remove_root=False):
 
 def _get_file(list_of_fname, regex=_RGX_FNAME_ANS):
     for f in list_of_fname:
-        if re.match(regex, f) is not None:
+        if re.match(regex, f):
             return f
     else:
         return None
@@ -564,6 +564,7 @@ def _do_calculation(todo_walk, z, force, verbose, progress,
         jobs_completed += 1
     if progress:
         _print_progress(jobs_completed, jobs_total, end=True)
+    return jobs_completed == jobs_total
 
 
 def do_calculations(
@@ -579,18 +580,20 @@ def do_calculations(
         # if the mass number is not in the range, do not do calculation
         fname_int = _get_file(files, _rgx_int)
         fname_bat = _get_file(files, _rgx_bat)
-        if fname_int is not None and (force or fname_bat is None):
+        if fname_int and (force or not fname_bat):
             a = _mass_number_from_filename(filename=fname_int)
             if a in a_range:
                 todo.append((root, files))
+    for t in sorted(todo):
+        print '  ' + sep.join(t[0].split(sep)[-3:])
     if threading and len(todo) > 1:
-        _do_calculation_t(todo_walk=todo, z=z, force=force, progress=progress)
+        return _do_calculation_t(
+            todo_walk=todo, z=z, force=force, progress=progress)
     else:
-        _do_calculation(
+        return _do_calculation(
             todo_walk=todo, z=z,
             force=force, progress=progress, verbose=verbose,
         )
-    return 1
 
 
 def do_all_calculations(
