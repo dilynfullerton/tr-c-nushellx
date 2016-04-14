@@ -1,2 +1,12 @@
 #!/bin/bash
-rsync -Hrl cougar:~/nushellx/linux/calculations/t0/results/Z2 ./results/
+from='cougar:~/nushellx/linux/calculations/t0/results/Z2';
+to='./results/';
+# rsync -Hrl $from $to
+rsync -Hrl \
+  --include="*/" \
+  --include="*.lpt" \
+  --include="*.bat" \
+  --include="*.int" \
+  --include="*.ans" \
+  --exclude="*" \
+  $from $to;
