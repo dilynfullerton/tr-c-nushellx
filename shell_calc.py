@@ -32,7 +32,7 @@ import re
 from Queue import Queue
 from collections import deque
 from math import floor
-from os import getcwd, path, walk, mkdir, link, rmdir, listdir, remove, makedirs, sep
+from os import getcwd, path, walk, mkdir, link, rmdir, listdir, remove, makedirs
 from subprocess import Popen, PIPE
 from sys import argv, stdout
 from threading import Thread, currentThread
