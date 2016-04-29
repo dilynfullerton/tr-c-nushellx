@@ -3,7 +3,7 @@
 
 To run as a script:
 
-    $ shell_calc.py [-[Ff]] ncomponent formalism Amin [Amax] Zmin [Zmax]
+    $ shell_calc.py [-[Ff]] nshell ncomponent formalism Amin [Amax] Zmin [Zmax]
 
 For each valid (A, Z) pair in the range defined by [Amin, Amax] x [Zmin, Zmax],
 where [.,.] signifies an inclusive interval over the positive integers,
@@ -12,16 +12,16 @@ SOURCE directory as well as usdb.
 
 If -F or -f precedes the arguments, forces recalculation even if outfiles
     already exist in the RESULTS directory.
-If 4 arguments are given,
-    assumes these are ncomponent formalism Amin Zmin.
+If 5 arguments are given,
+    assumes these are nshell ncomponent formalism Amin Zmin.
     Calculation range = {(Amin, Zmin)}, if Amin >= 2*Zmin and Amin, Zmin are
     positive integers.
-If 5 arguments are given,
-    assumes these are ncomponent formalism Amin Amax Zmin.
+If 6 arguments are given,
+    assumes these are nshell ncomponent formalism Amin Amax Zmin.
     Calculation range = the set of (A, Z) in [Amin, Amax] x [Zmin],
     where A >= 2*Z and A, Z are positive integers.
-If 6 arguments are given,
-    assumes these are ncomponent formalism Amin Amax Zmin Zmax.
+If 7 arguments are given,
+    assumes these are nshell ncomponent formalism Amin Amax Zmin Zmax.
     Calculation range = set of (A, Z) in [Amin, Amax] x [Zmin, Zmax],
     where A >= 2*Z and A, Z are positive integers.
 """
@@ -227,8 +227,24 @@ def _make_sp_file(src, dst, formalism):
     f.close()
 
 
+class UnknownParityException(Exception):
+    pass
+
+
+def _get_parity(a, nshell):
+    if nshell == 1:
+        return a % 2
+    elif nshell == 2:
+        return 0
+    else:
+        raise UnknownParityException(
+            '\nMethod of determining parity is not known for '
+            'Nshell = %d' % nshell
+        )
+
+
 def make_results_dir(
-        a_range, z, ncomponent, formalism,
+        a_range, z, nshell, ncomponent, formalism,
         jmin_even=JMIN_EVEN, jmax_even=JMAX_EVEN,
         jmin_odd=JMIN_ODD, jmax_odd=JMAX_ODD,
         dirpath_sources=DPATH_SOURCES,
@@ -247,6 +263,7 @@ def make_results_dir(
     :param a_range: Mass range for which to create directories. If None,
     will do for all files.
     :param z: Z number for which to make results
+    :param nshell: major oscillator shell (0=s, 1=p, 2=sd, ...)
     :param ncomponent: Number of particle components in system.
         neutrons       -> 1
         proton-neutron -> 2
@@ -320,9 +337,11 @@ def make_results_dir(
             fpath_ans = path.join(new_dir, 'A%d.ans' % mass_num)
             if force or not path.exists(fpath_ans):
                 if mass_num % 2 == 0:  # even
-                    j_min, j_max, parity = jmin_even, jmax_even, PARITY_EVEN
+                    j_min, j_max = jmin_even, jmax_even
+                    parity = _get_parity(a=mass_num, nshell=nshell)
                 else:  # odd
-                    j_min, j_max, parity = jmin_odd, jmax_odd, PARITY_ODD
+                    j_min, j_max = jmin_odd, jmax_odd
+                    parity = _get_parity(a=mass_num, nshell=nshell)
                 _make_ans_file(
                     file_path=fpath_ans,
                     sp_file=_fname_model_space_out,
@@ -334,7 +353,7 @@ def make_results_dir(
 
 
 def make_usdb_dir(
-        a_range, z,
+        a_range, z, nshell,
         jmin_even=JMIN_EVEN, jmax_even=JMAX_EVEN,
         jmin_odd=JMIN_ODD, jmax_odd=JMAX_ODD,
         dirpath_results=DPATH_RESULTS,
@@ -366,9 +385,11 @@ def make_usdb_dir(
         fpath_ans = path.join(dname, 'A%d.ans' % mass_num)
         if force or not path.exists(fpath_ans):
             if mass_num % 2 == 0:  # even
-                j_min, j_max, parity = jmin_even, jmax_even, PARITY_EVEN
-            else:
-                j_min, j_max, parity = jmin_odd, jmax_odd, PARITY_ODD
+                j_min, j_max = jmin_even, jmax_even
+                parity = _get_parity(a=mass_num, nshell=nshell)
+            else:  # odd
+                j_min, j_max = jmin_odd, jmax_odd
+                parity = _get_parity(a=mass_num, nshell=nshell)
             _make_ans_file(
                 file_path=fpath_ans, sp_file=_fname_model_space,
                 num_nucleons=mass_num, num_protons=z, interaction_name='usdb',
@@ -595,7 +616,7 @@ def do_calculations(
 
 
 def do_all_calculations(
-        arange, zrange, n_component=2, formalism='pn',
+        arange, zrange, nshell, n_component=2, formalism='pn',
         dirpath_results=DPATH_RESULTS,
         jmin_even=JMIN_EVEN, jmax_even=JMAX_EVEN,
         jmin_odd=JMIN_ODD, jmax_odd=JMAX_ODD,
@@ -605,13 +626,14 @@ def do_all_calculations(
     for z in zrange:
         arange0 = list(filter(lambda a: a >= z, arange))
         make_results_dir(
-            a_range=arange0, z=z, ncomponent=n_component, formalism=formalism,
+            a_range=arange0, z=z, nshell=nshell, ncomponent=n_component,
+            formalism=formalism,
             jmin_even=jmin_even, jmax_even=jmax_even,
             jmin_odd=jmin_odd, jmax_odd=jmax_odd,
             force=force, **kwargs
         )
         make_usdb_dir(
-            a_range=arange0, z=z,
+            a_range=arange0, z=z, nshell=nshell,
             jmin_even=jmin_even, jmax_even=jmax_even,
             jmin_odd=jmin_odd, jmax_odd=jmax_odd,
             force=force, **kwargs
@@ -627,30 +649,36 @@ if __name__ == "__main__":
         user_args = user_args[1:]
     else:
         force0 = False
-    if len(user_args) == 4:
-        ncomponent0 = int(user_args[0])
-        formalism0 = user_args[1]
-        amin, zmin = [int(x) for x in user_args[2:]]
+    if len(user_args) == 5:
+        nshell0 = int(user_args[0])
+        ncomponent0 = int(user_args[1])
+        formalism0 = user_args[2]
+        amin, zmin = [int(x) for x in user_args[3:]]
         do_all_calculations(
-            arange=[amin], zrange=[zmin], n_component=ncomponent0,
-            formalism=formalism0, force=force0
-        )
-    elif len(user_args) == 5:
-        ncomponent0 = int(user_args[0])
-        formalism0 = user_args[1]
-        amin, amax, zmin = [int(x) for x in user_args[2:]]
-        do_all_calculations(
-            arange=range(amin, amax+1), zrange=[zmin], n_component=ncomponent0,
+            arange=[amin], zrange=[zmin],
+            nshell=nshell0, n_component=ncomponent0,
             formalism=formalism0, force=force0
         )
     elif len(user_args) == 6:
-        ncomponent0 = int(user_args[0])
-        formalism0 = user_args[1]
-        amin, amax, zmin, zmax = [int(x) for x in user_args[2:]]
+        nshell0 = int(user_args[0])
+        ncomponent0 = int(user_args[1])
+        formalism0 = user_args[2]
+        amin, amax, zmin = [int(x) for x in user_args[3:]]
+        do_all_calculations(
+            arange=range(amin, amax+1), zrange=[zmin],
+            nshell=nshell0, n_component=ncomponent0,
+            formalism=formalism0, force=force0
+        )
+    elif len(user_args) == 7:
+        nshell0 = int(user_args[0])
+        ncomponent0 = int(user_args[1])
+        formalism0 = user_args[2]
+        amin, amax, zmin, zmax = [int(x) for x in user_args[3:]]
         do_all_calculations(
             arange=range(amin, amax+1), zrange=range(zmin, zmax+1),
-            n_component=ncomponent0, formalism=formalism0, force=force0
+            nshell=nshell0, n_component=ncomponent0,
+            formalism=formalism0, force=force0
         )
     else:
         print ('User entered %d arguments. ' % (len(user_args),) +
-               'shell_calc.py requires 4-6 arguments.')
+               'shell_calc.py requires 5-7 arguments.')

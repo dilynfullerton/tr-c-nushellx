@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # cougar -> here
-from='cougar:~/nushellx/linux/calculations/t0/results/Z2';
-to='./results/';
+from='cougar:~/nushellx/linux/calculations/t0/results';
+to='./';
 
 # here -> itheory
 # from='./results/Z2';
