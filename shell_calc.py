@@ -287,16 +287,13 @@ def make_results_dir(
     """
     # only use A values greater than or equal to Z
     a_range = list(filter(lambda a: a >= z, a_range))
-
     results_subdir = path.join(dirpath_results, _dname_fmt_z % z)
     if not path.exists(dirpath_sources):
         raise SourcesDirDoesNotExistException()
     if not path.exists(results_subdir):
         makedirs(results_subdir)
-
     todo_sources = deque([dirpath_sources])
     todo_results = deque([results_subdir])
-
     while len(todo_sources) > 0:
         cwd_sources = todo_sources.popleft()
         cwd_results = todo_results.popleft()
@@ -539,14 +536,11 @@ def _do_calculation_t(
     def _r(root_, files_, q):
         _shell_and_bat(root=root_, files=files_, force=force, verbose=False)
         q.put(currentThread())
-
     todo_list = list(todo_walk)
     active_list = list()
     done_queue = Queue()
-
     jobs_completed = 0
     jobs_total = len(todo_list)
-
     if progress and jobs_total > 0:
         print _str_fmt_prog % z
         _print_progress(jobs_completed, jobs_total)
