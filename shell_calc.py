@@ -117,36 +117,72 @@ class NoAvailableModelSpaceException(Exception):
 
 def _mass_number_from_filename(
         filename, split_char=CHR_FILENAME_SPLIT, regex_mass_num=RGX_MASS_NUM):
+    """Given a file name, which is formatted with "elements" or "blocks"
+    separated by a split_char, retrieves the one that specifies the mass number
+    and returns the mass number.
+    :param filename: file name of a NuShellX *.int file
+    :param split_char: character that separates filename "elements". Default is
+    '_' (underscore)
+    :param regex_mass_num: regular expression that matches the mass number
+    in the filename. Example: "A\d+"
+    :return: mass number (an integer)
+    """
     filename_elts = reversed(_filename_elts_list(filename, split_char))
     mass = _elt_from_felts(filename_elts, regex_mass_num)
-    if mass is not None:
+    if mass:
         return int(mass[1:])
     else:
         return None
 
 
 def _filename_elts_list(fname, split_char):
+    """Returns a list of filename "elements," which are the pieces of the
+    filename separated by spit_char.
+    Extension of the filename is removed.
+    If the filename is actually a file path, directories are removed leaving
+    only the filename
+    :param fname: name of the file
+    :param split_char: character that splits the filename "elements" or
+    "blocks". For example, '_' (underscore)
+    :return: list of filename elements
+    """
     ext_index = fname.rfind('.')
     dir_index = fname.rfind('/')
     if dir_index != -1:
-        filename_woext = fname[dir_index:ext_index]
+        filename_without_ext = fname[dir_index:ext_index]
     else:
-        filename_woext = fname[:ext_index]
-    return filename_woext.split(split_char)
+        filename_without_ext = fname[:ext_index]
+    return filename_without_ext.split(split_char)
 
 
 def _elt_from_felts(felts, elt_regex):
+    """Returns the first of the elements in felts that matches elt_regex
+    completely
+    :param felts: list of filename elements (strings)
+    :param elt_regex: regular expression that matches the desired element
+    :return: first element in felts that matches elt_regex or None if a
+    matching element is not found
+    """
     for elt in felts:
         m = re.match(elt_regex, elt)
-        if m is not None and m.group(0) == elt:
+        if m and m.group(0) == elt:
             return elt
     else:
         return None
 
 
 def _fname_without_extension(fname):
+    """Given a filename with an extension, return the filename without the
+    extension
+    :param fname: a filename
+    :return: given filename without everything following (and including) the
+    rightmost period, if it exists
+    """
     index = fname.rfind('.')
-    return fname[:index]
+    if index != -1:
+        return fname[:index]
+    else:
+        return fname
 
 
 def _make_ans_file(
@@ -184,12 +220,10 @@ def _get_model_space(
         a, n_component=True, shell_sp_map=MAP_SHELL_TO_MODEL_SPACES):
     """Returns the filename of the model space associated with the given
     mass number
-
-    :param a: Mass number
-    :param n_component: If True, assume a 2-component space (protons and
-    neutrons), else assume a 1-component space (neutrons only)
+    :param a: mass number (A)
+    :param n_component: (1 -> neutrons, 2 -> protons and neutrons)
     :param shell_sp_map: Map from shell to model space filename
-    :return: Filename associated with the given A value
+    :return: filename associated with the given A value
     :raises: NoAvailableModelSpaceException if there is no model space
     file for the given A value
     """
@@ -208,6 +242,12 @@ def _get_model_space(
 
 
 def _make_sp_file(src, dst, formalism):
+    """Using the template file given by src, write a model space *.sp file at
+    dst with the given formalism
+    :param src: path to the appropriate template *.sp file
+    :param dst: path to the destination *.sp file
+    :param formalism: t -> isopsin, pn -> proton/neutron
+    """
     # read src file into list
     f = open(src, 'r')
     inlines = f.readlines()
@@ -231,7 +271,14 @@ class UnknownParityException(Exception):
     pass
 
 
+# todo make me general
 def _get_parity(a, nshell):
+    """Given a mass number and shell, return the parity
+    :param a: mass number (A)
+    :param nshell: major oscillator shell (0=s, 1=p, 2=sd, ...)
+    :raises UnknownParityException: raised if the parity is unknown for the
+    given shell
+    """
     if nshell == 1:
         return a % 2
     elif nshell == 2:
@@ -247,9 +294,9 @@ def make_results_dir(
         a_range, z, nshell, ncomponent, formalism,
         jmin_even=JMIN_EVEN, jmax_even=JMAX_EVEN,
         jmin_odd=JMIN_ODD, jmax_odd=JMAX_ODD,
-        dirpath_sources=DPATH_SOURCES,
-        dirpath_results=DPATH_RESULTS,
-        dirpath_templates=DPATH_TEMPLATES,
+        dpath_sources=DPATH_SOURCES,
+        dpath_results=DPATH_RESULTS,
+        dpath_templates=DPATH_TEMPLATES,
         _dname_fmt_z=DNAME_FMT_Z,
         _fname_model_space_out=FNAME_MODEL_SPACE_OUT,
         _regex_int=_RGX_FNAME_INT,
@@ -260,11 +307,11 @@ def make_results_dir(
     file (according to its name) and copy the file into the directory with a
     short name. Also, for each directory to which a *.int file is copied the
     given model space is linked and a *.ans file is generated.
-    :param a_range: Mass range for which to create directories. If None,
+    :param a_range: mass range for which to create directories. If None,
     will do for all files.
     :param z: Z number for which to make results
     :param nshell: major oscillator shell (0=s, 1=p, 2=sd, ...)
-    :param ncomponent: Number of particle components in system.
+    :param ncomponent: number of particle components in system.
         neutrons       -> 1
         proton-neutron -> 2
     :param formalism: formalism under which to run NuShellX.
@@ -274,25 +321,25 @@ def make_results_dir(
     :param jmax_even: *.ans parameter jmax for even A
     :param jmin_odd: *.ans parameter jmin for odd A
     :param jmax_odd: *.ans parameter jmax for odd A
-    :param dirpath_sources: Directory in which source files are stored
-    :param dirpath_results: Directory in which results are to be generated
-    :param dirpath_templates: Directory in which *.sp templates files
+    :param dpath_sources: directory in which source files are stored
+    :param dpath_results: directory in which results are to be generated
+    :param dpath_templates: directory in which *.sp templates files
     are housed
-    :param _dname_fmt_z: Results subdirectory name template that takes the
+    :param _dname_fmt_z: results subdirectory name template that takes the
     proton number (and integer) as its sole argument
     :param _fname_model_space_out: name of the model space file to write
-    :param _regex_int: Regular expression that matches interaction files
+    :param _regex_int: regular expression that matches interaction files
     :param force: If true, force making of .ans file, even if one
     already exists
     """
     # only use A values greater than or equal to Z
     a_range = list(filter(lambda a: a >= z, a_range))
-    results_subdir = path.join(dirpath_results, _dname_fmt_z % z)
-    if not path.exists(dirpath_sources):
+    results_subdir = path.join(dpath_results, _dname_fmt_z % z)
+    if not path.exists(dpath_sources):
         raise SourcesDirDoesNotExistException()
     if not path.exists(results_subdir):
         makedirs(results_subdir)
-    todo_sources = deque([dirpath_sources])
+    todo_sources = deque([dpath_sources])
     todo_results = deque([results_subdir])
     while len(todo_sources) > 0:
         cwd_sources = todo_sources.popleft()
@@ -325,7 +372,7 @@ def make_results_dir(
                 a=mass_num, n_component=ncomponent)
             fname_sp_src = '%s.sp' % fname_model_space
             fname_sp_dst = '%s.sp' % _fname_model_space_out
-            fpath_sp_src = path.join(dirpath_templates, fname_sp_src)
+            fpath_sp_src = path.join(dpath_templates, fname_sp_src)
             fpath_sp_dst = path.join(new_dir, fname_sp_dst)
             if force or not path.exists(fpath_sp_dst):
                 _make_sp_file(
@@ -353,16 +400,36 @@ def make_usdb_dir(
         a_range, z, nshell,
         jmin_even=JMIN_EVEN, jmax_even=JMAX_EVEN,
         jmin_odd=JMIN_ODD, jmax_odd=JMAX_ODD,
-        dirpath_results=DPATH_RESULTS,
-        dirpath_templates=DPATH_TEMPLATES,
-        _dirname_usdb=DNAME_USDB,
+        dpath_results=DPATH_RESULTS,
+        dpath_templates=DPATH_TEMPLATES,
+        _dname_usdb=DNAME_USDB,
         _fname_model_space=FNAME_MODEL_SPACE_USDB,
         _usdb_arange=SD_SHELL,
         force=False
 ):
+    """Make USDB directories for the given parameters. This is largely similar
+    to make_results_dir, but in this case the interaction is always usdb.int
+    :param a_range: mass range for which to create directories. If None,
+    will do for all files.
+    :param z: Z number for which to make results
+    :param nshell: major oscillator shell (0=s, 1=p, 2=sd, ...)
+    :param jmin_even: *.ans parameter jmin for even A
+    :param jmax_even: *.ans parameter jmax for even A
+    :param jmin_odd: *.ans parameter jmin for odd A
+    :param jmax_odd: *.ans parameter jmax for odd A
+    :param dpath_results: directory in which results are to be generated
+    :param dpath_templates: directory in which *.sp templates files
+    are housed
+    :param _dname_usdb: name of the usdb subdirectory
+    :param _fname_model_space: name of the usdb model space file
+    :param _usdb_arange: range of A values for which USDB can be done
+    :param force: If true, force making of .ans file, even if one
+    already exists
+    :return:
+    """
     a_range = list(filter(lambda a: a >= z, a_range))
-    results_subdir = path.join(dirpath_results, 'Z%d' % z)
-    usdb_dirpath = path.join(results_subdir, _dirname_usdb)
+    results_subdir = path.join(dpath_results, 'Z%d' % z)
+    usdb_dirpath = path.join(results_subdir, _dname_usdb)
     if not path.exists(usdb_dirpath):
         makedirs(usdb_dirpath)
     for mass_num in a_range:
@@ -377,7 +444,7 @@ def make_usdb_dir(
         if force or not path.exists(fpath_sp):
             if path.exists(fpath_sp):
                 remove(fpath_sp)
-            link(path.join(dirpath_templates, fname_sp), fpath_sp)
+            link(path.join(dpath_templates, fname_sp), fpath_sp)
         # create .ans file
         fpath_ans = path.join(dname, 'A%d.ans' % mass_num)
         if force or not path.exists(fpath_ans):
@@ -395,6 +462,12 @@ def make_usdb_dir(
 
 
 def remove_empty_directories(root, remove_root=False):
+    """Starting from a given root, recursively remove any subdirectory that
+    contains no files or directories (besides other empty directories)
+    :param root: starting directory
+    :param remove_root: if true, will remove the root if it is empty after
+    all empty subdirectories are removed
+    """
     item_names = listdir(root)
     item_paths = [path.join(root, item) for item in item_names]
     subdir_paths = list(filter(lambda p: path.isdir(p), item_paths))
@@ -405,7 +478,15 @@ def remove_empty_directories(root, remove_root=False):
         rmdir(root)
 
 
+# todo does this really need its own function?
 def _get_file(list_of_fname, regex=_RGX_FNAME_ANS):
+    """In a list of filenames, returns the file that matches the given
+    regular expression.
+    :param list_of_fname: list of filenames to search
+    :param regex: regular expression
+    :return: first file that matches regex, or None if no matching file is
+    found
+    """
     for f in list_of_fname:
         if re.match(regex, f):
             return f
@@ -414,7 +495,7 @@ def _get_file(list_of_fname, regex=_RGX_FNAME_ANS):
 
 
 def _files_with_ext_in_directory(dirpath, extension):
-    """Returns a list of the filenames of all the files_INT in the given
+    """Returns a list of the filenames of all the files in the given
     directory with the given extension
     :param extension: file extension
     :param dirpath: path to directory
@@ -422,14 +503,31 @@ def _files_with_ext_in_directory(dirpath, extension):
     return list(glob.glob(path.join(dirpath, '*' + extension)))
 
 
-def _calc_has_been_done(dirpath):
-    return len(_files_with_ext_in_directory(dirpath, '.lpt')) > 1
+def _calc_has_been_done(dpath):
+    """Determine whether the shell calculation has completed successfully.
+    If it has, there should be multiple files with the .lpt extension.
+    :param dpath: path to the directory to search
+    :return: true if there is more that one file with the extension '.lpt',
+    false otherwise
+    """
+    return len(_files_with_ext_in_directory(dpath, '.lpt')) > 1
 
 
 def _shell_calculation(
         root, fname_ans, verbose,
         _fname_stdout=_FNAME_STDOUT_SHELL, _fname_stderr=_FNAME_STDERR_SHELL
 ):
+    """Run shell in root
+    :param root: path to the directory in which to run shell
+    :param fname_ans: name of the *.ans file specifying how the calculation is
+    to be done
+    :param verbose: if true, regular output of shell is outputted to stdout
+    :param _fname_stdout: filename in which to save standard output of shell
+    if verbose is false
+    :param _fname_stderr: filename in which to save error output of shell
+    if verbose is false
+    :param return: returncode
+    """
     args = ['shell', '%s' % fname_ans]
     if not verbose:
         p = Popen(args=args, stdout=PIPE, stderr=PIPE, cwd=root)
@@ -445,13 +543,23 @@ def _shell_calculation(
     else:
         p = Popen(args=args, cwd=root)
         p.wait()
-    return 1
+    return p.poll()
 
 
 def _do_shell_calculation(
         files, root, force, verbose,
         _rgx_ans=_RGX_FNAME_ANS, _rgx_bat=_RGX_FNAME_BAT
 ):
+    """Do shell calculation in root IF it has not already been done or force
+    is True
+    :param files: files in root
+    :param root: directory in which to run shell
+    :param force: if true, runs shell even if output files exist
+    :param verbose: if true, regular output of shell is printed to stdout
+    :param _rgx_ans: regular expression matching *.ans file
+    :param _rgx_bat: regular expression matching *.bat file
+    :return: returncode of shell calculation
+    """
     fname_ans = _get_file(files, _rgx_ans)
     fname_bat = _get_file(files, _rgx_bat)
     if fname_ans is not None:  # There is a *.ans file
@@ -464,6 +572,16 @@ def _bat_calculation(
         root, fname_bat, verbose,
         _fname_stdout=_FNAME_STDOUT_BAT, _fname_stderr=_FNAME_STDERR_BAT
 ):
+    """Source the given *.bat file in root
+    :param root: directory in which to run calculation
+    :param fname_bat: name of the *.bat file
+    :param verbose: if true, prints standard output to stdout
+    :param _fname_stdout: filename to which to write standard output if
+    verbose is false
+    :param _fname_stderr: filenaem to which to write error output if
+    verbose is false
+    :return: returncode
+    """
     args = ['source', '%s' % fname_bat]
     if not verbose:
         try:
@@ -486,12 +604,21 @@ def _bat_calculation(
         except OSError:
             p = Popen(args=' '.join(args), shell=True, cwd=root)
         p.wait()
-    return 1
+    return p.poll()
 
 
 def _do_bat_calculation(
         root, files, force, verbose, _rgx_bat=_RGX_FNAME_BAT
 ):
+    """Do bat calculation IF it has not already been done or if the user
+     forces
+    :param root: directory in which to do calculation
+    :param files: files in the directory
+    :param force: if true, runs *.bat even if output files already exist
+    :param verbose: if true, writes regular output to standard out
+    :param _rgx_bat: regular expression that matches the *.bat file to run
+    :return: returncode
+    """
     fname_bat = _get_file(files, _rgx_bat)
     if fname_bat is not None:
         if force or not _calc_has_been_done(root):
@@ -505,27 +632,48 @@ def _print_progress(
         total_width=WIDTH_TERM,
         text_fmt=STR_PROGRESS_BAR
 ):
-    if total > 0:
-        text = text_fmt % (floor(completed), total)
-        p = completed / total
-        bar_fill = int(floor(p * bar_len))
-        progress_bar = '[' + '#'*bar_fill + ' '*(bar_len - bar_fill) + ']'
-        sp_fill_len = total_width - len(text) - len(progress_bar)
-        if sp_fill_len < 0:
-            sp_fill_len = 0
-        line = '\r' + text + ' '*sp_fill_len + progress_bar
-        if end:
-            line += '\n'
-        stdout.write(line)
-        stdout.flush()
+    """Writes a progress bar to stdout based on completed and total
+    :param completed: jobs completed
+    :param total: total jobs todo
+    :param end: if true, adds a newline '\n' character to the end of output to
+    allow for regular printing
+    :param bar_len: width of the error bar
+    :param total_width: total allowed width of output
+    :param text_fmt: text to be printed beside the bar, which takes completed
+    and total as format arguments
+    """
+    if not total > 0:
+        return None
+    text = text_fmt % (floor(completed), total)
+    p = completed / total
+    bar_fill = int(floor(p * bar_len))
+    progress_bar = '[' + '#'*bar_fill + ' '*(bar_len - bar_fill) + ']'
+    sp_fill_len = total_width - len(text) - len(progress_bar)
+    if sp_fill_len < 0:
+        sp_fill_len = 0
+    line = '\r' + text + ' '*sp_fill_len + progress_bar
+    if end:
+        line += '\n'
+    stdout.write(line)
+    stdout.flush()
 
 
 def _shell_and_bat(root, files, force, verbose):
-    _do_shell_calculation(
+    """Do the shell and bat calculations
+    :param root: directory in which to do the calculations
+    :param files: names of files in the directory
+    :param force: if true, forces redoing of calculations even if output
+    files already exist
+    :param verbose: if true, prints regular output to stdout; else, this is
+    suppressed and written to files instead
+    :return: exit codes for shell and bat calculations
+    """
+    ret1 = _do_shell_calculation(
         root=root, files=files, force=force, verbose=verbose)
     new_files = listdir(root)
-    _do_bat_calculation(
+    ret2 = _do_bat_calculation(
         root=root, files=new_files, force=force, verbose=verbose)
+    return ret1, ret2
 
 
 def _do_calculation_t(
@@ -533,6 +681,19 @@ def _do_calculation_t(
         _max_open_threads=MAX_OPEN_THREADS,
         _str_fmt_prog=STR_FMT_PROGRESS_HEAD
 ):
+    """Run the calculations in concurrency with a maximum number of open
+    threads.
+    :param todo_walk: list of all pairs (root, files) for which the
+    shell and bat calculations are to be done
+    :param z: proton number (Z)
+    :param force: if true, forces redoing shell and bat even if output files
+    already exist
+    :param progress: if true, shows a progress bar, indicating the number
+    of closed threads
+    :param _max_open_threads: maximum number of external threads to open
+    :param _str_fmt_prog: string to display above the progress bar
+    :return: true, if all jobs were completed; false otherwise
+    """
     def _r(root_, files_, q):
         _shell_and_bat(root=root_, files=files_, force=force, verbose=False)
         q.put(currentThread())
@@ -567,8 +728,22 @@ def _do_calculation_t(
 
 def _do_calculation(todo_walk, z, force, verbose, progress,
                     _str_fmt_prog=STR_FMT_PROGRESS_HEAD):
+    """Run shell and bat calculations sequentially
+    :param todo_walk: list of (root, files) for which the calculations are to
+    be done
+    :param z: proton number (Z)
+    :param force: if true, forces redoing calculations even if output files
+    exist
+    :param verbose: if true, writes output of shell and bat to stdout; else
+    output is suppressed and written to files instead
+    :param progress: if true, displays a progress bar (not compatible with
+    verbose option)
+    :param _str_fmt_prog: string to display above the progress bar
+    :return: true if all jobs were completed; false otherwise
+    """
     jobs_completed = 0
     jobs_total = len(todo_walk)
+    progress = progress and not verbose
     if progress and jobs_total > 0:
         print _str_fmt_prog % z
     for root, files in todo_walk:
@@ -584,12 +759,30 @@ def _do_calculation(todo_walk, z, force, verbose, progress,
 
 def do_calculations(
         a_range, z,
-        dirpath_results=DPATH_RESULTS,
-        dirname_fmt_z=DNAME_FMT_Z,
+        dpath_results=DPATH_RESULTS, dname_fmt_z=DNAME_FMT_Z,
         _rgx_bat=_RGX_FNAME_BAT, _rgx_int=_RGX_FNAME_INT,
-        force=False, verbose=False, progress=True, threading=True
+        force=False, verbose=False, progress=True, threading=True,
 ):
-    dirpath_z = path.join(dirpath_results, dirname_fmt_z % z)
+    """For a given proton number, do all shell and bat calculations that have
+    not been done in the results directory
+    :param a_range: list of mass numbers for which to do calculations
+    :param z: proton number (Z) for which to do calculations
+    :param dpath_results: results directory
+    :param dname_fmt_z: results subdirectory for the the given proton number,
+    (to be formatted with that number)
+    :param _rgx_bat: regular expression that matches the *.bat files
+    :param _rgx_int: regular expression that matches the *.int files
+    :param force: if true, redoes calculations even if output files already
+    exist
+    :param verbose: if true, write standard output to stdout; else this is
+    suppressed and written to files
+    :param progress: if true, prints a progress bar to stdout (not compatible
+    with verbose)
+    :param threading: if true, uses multithreading to speed up calculation
+    :return: true if all calculations were completed successfully; false
+    otherwise
+    """
+    dirpath_z = path.join(dpath_results, dname_fmt_z % z)
     todo = list()
     for root, dirs, files in walk(dirpath_z):
         # if the mass number is not in the range, do not do calculation
@@ -611,31 +804,65 @@ def do_calculations(
 
 def do_all_calculations(
         arange, zrange, nshell, n_component=2, formalism='pn',
-        dirpath_results=DPATH_RESULTS,
+        dpath_results=DPATH_RESULTS,
+        dpath_sources=DPATH_SOURCES,
+        dpath_templates=DPATH_TEMPLATES,
         jmin_even=JMIN_EVEN, jmax_even=JMAX_EVEN,
         jmin_odd=JMIN_ODD, jmax_odd=JMAX_ODD,
-        force=False, **kwargs
+        force=False, verbose=False, progress=True, threading=True,
 ):
+    """For each proton number (Z) in zrange and mass number (A) in arange,
+    copies the directory structure present in sources directory into the
+    results directory and does shell and bat calculations for each interaction.
+    :param arange: range of mass numbers (A) for which to do the calculations
+    :param zrange: range of proton numbers (Z) for which to do the calculations
+    :param nshell: major oscillator shell (0=s, 1=p, 2=sd, ...)
+    :param n_component: (1 -> neutrons, 2 -> protons and neutrons)
+    :param formalism: ('t' -> isospin, 'pn' -> proton/neutron)
+    :param dpath_results: path to the results directory
+    :param dpath_sources: path to the sources directory
+    :param dpath_templates: path to the templates directory
+    :param jmin_even: minimum angular momentum for even A
+    :param jmax_even: maximum angular momentum for even A
+    :param jmin_odd: minimum angular momentum for odd A
+    :param jmax_odd: maximum angular momentum for odd A
+    :param force: if true, force redoing calculations even if output files
+    already exist
+    :param verbose: if true, writes regular output of shell and bat
+    calculations to stdout; else output is suppressed and written to files
+    :param progress: if true, displays a progress bar showing completion of
+    jobs (NOTE: not compatible with verbose option)
+    :param threading: if true, calculations are multi-threaded
+    """
     zrange = list(filter(lambda z0: z0 >= 1, zrange))
     for z in zrange:
         arange0 = list(filter(lambda a: a >= z, arange))
         make_results_dir(
-            a_range=arange0, z=z, nshell=nshell, ncomponent=n_component,
-            formalism=formalism,
+            a_range=arange0, z=z,
+            nshell=nshell, ncomponent=n_component, formalism=formalism,
             jmin_even=jmin_even, jmax_even=jmax_even,
             jmin_odd=jmin_odd, jmax_odd=jmax_odd,
-            force=force, **kwargs
+            dpath_results=dpath_results,
+            dpath_sources=dpath_sources,
+            dpath_templates=dpath_templates,
+            force=force,
         )
         make_usdb_dir(
             a_range=arange0, z=z, nshell=nshell,
             jmin_even=jmin_even, jmax_even=jmax_even,
             jmin_odd=jmin_odd, jmax_odd=jmax_odd,
-            force=force, **kwargs
+            dpath_results=dpath_results,
+            dpath_templates=dpath_templates,
+            force=force,
         )
-        remove_empty_directories(dirpath_results, remove_root=False)
-        do_calculations(a_range=arange0, z=z, force=force, **kwargs)
+        remove_empty_directories(dpath_results, remove_root=False)
+        do_calculations(
+            a_range=arange0, z=z, force=force, dpath_results=dpath_results,
+            verbose=verbose, progress=progress, threading=threading,
+        )
 
 
+# todo this stuff should be done better
 if __name__ == "__main__":
     user_args = argv[1:]
     if '-f' == user_args[0].lower():
