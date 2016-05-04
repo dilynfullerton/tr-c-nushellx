@@ -1,4 +1,5 @@
 #!/bin/bash
+# pull results from cougar to this directory
 
 # cougar -> here
 from='cougar:~/nushellx/linux/calculations/t0/results';
