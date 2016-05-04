@@ -22,7 +22,7 @@ The following should be done to prepare for usage:
     PATH=$PATH:~/.../nushellx/linux/nushellx-intel/bin/
     ```
 3. If you want to run `shell_calc.py` as a script, add the path to the
-directory containing it to your `.bash_profile` or `.profile`.  
+directory containing `shell_calc.py` to your `.bash_profile` or `.profile`.  
 
 
 ### Usage
