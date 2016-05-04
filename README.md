@@ -83,8 +83,12 @@ when the job is complete:
     ```bash
     qsub shell_calc.sh
     ```
-	
-	
+
+#### Other userful scripts
+* `get_results.sh` pulls only relevant results from a remote `$from`
+location to the current directory.
+* `sync_scripts.sh` puts python scripts in the main directory to a
+remote location, specified by `$to`.
 
 ### Future developments
 _Coming soon_
