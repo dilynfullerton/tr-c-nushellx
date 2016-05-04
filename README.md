@@ -66,15 +66,19 @@ following is the procedure for submitting a job to the cluster:
 script that uses its functionality.  
 
 2. Edit the walltime parameter (format hh:mm:ss) to reflect the amount
-of time you want to allow for the job.
+of time you want to allow for the job. A typical run will
+require 30 minutes or less.  
 
+    ```bash
+    #PBS -l walltime=00:30:00
+    ```
 3. (Optional) Add the following to `shell_calc.sh` to receive an email
 when the job is complete:  
 
     ```bash
     #PBS -M youremail@here
     ```
-4. Submit the job to cluster using the command: 
+4. Submit the job to cluster using the command:  
 
     ```bash
     qsub shell_calc.sh
