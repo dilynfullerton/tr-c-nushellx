@@ -3,7 +3,6 @@
 #PBS -l nodes=1:ppn=12
 #PBS -l vmem=60gb
 #PBS -m ae
-#PBS -M dilyn.fullerton@att.net
 #PBS -j oe 
 
 NTHREADS=12
