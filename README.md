@@ -54,7 +54,7 @@ The user may opt to run `shell_calc.py` as a UNIX-style command.
 _Coming soon_: Documentation and examples of usage here. For now, see
 the documentation in `shell_calc.py`.
 
-##### Submitting to cluster
+#### Running on the cluster
 This script does not have built-in parameters for submitting jobs to
 the cluster, as inidividual `shell` jobs usually require such little
 time (a few seconds at most) that submitting them to the cluster is
