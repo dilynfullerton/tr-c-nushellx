@@ -10,7 +10,8 @@ export OMP_NUM_THREADS=$NTHREADS
 
 cd $PBS_O_WORKDIR
 
+# Enter the job you want to be done on the cluster.
 # helium
-# shell_calc.py -f 1 1 t 4 10 2
+# python shell_calc.py -f 1 1 t 4 10 2
 # oxygen
 python shell_calc.py -f 2 1 t 16 24 8
