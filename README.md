@@ -2,12 +2,15 @@
 _Coming soon_: MORE information about this stuff. Oooh weee! I can't wait
 
 ### Overview
+---
 _Coming soon_
 
 ### Dependencies
+---
 * python 2 (2.4 or higher)
 
 ### Setup
+---
 The following should be done to prepare for usage:
 
 1. Clone this repository to the desired calculation directory.  
@@ -26,6 +29,7 @@ directory containing `shell_calc.py` to your `.bash_profile` or `.profile`.
 
 
 ### Usage
+---
 #### Before running the calculations
 1. Create a `sources` directory inside the directory in which you intend
 to run `shell_calc.py`.
@@ -91,4 +95,5 @@ location to the current directory.
 remote location, specified by `$to`.
 
 ### Future developments
+---
 _Coming soon_
