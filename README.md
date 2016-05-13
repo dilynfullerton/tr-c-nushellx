@@ -49,12 +49,10 @@ import and use the primary user functions:
 * `do_calculations()`
 * `do_all_calculations()`
 
-_Coming soon_: Documentation and examples of usage here. For now, see
-the documentation in `shell_calc.py`.
-
 ##### Running as a script
 The user may opt to run `shell_calc.py` as a UNIX-style command.
 
+#### Examples
 _Coming soon_: Documentation and examples of usage here. For now, see
 the documentation in `shell_calc.py`.
 
