@@ -782,6 +782,7 @@ def do_calculations(
     :return: true if all calculations were completed successfully; false
     otherwise
     """
+    progress = progress and not verbose
     dirpath_z = path.join(dpath_results, dname_fmt_z % z)
     todo = list()
     for root, dirs, files in walk(dirpath_z):
@@ -865,11 +866,17 @@ def do_all_calculations(
 # todo this stuff should be done better
 if __name__ == "__main__":
     user_args = argv[1:]
-    if '-f' == user_args[0].lower():
-        force0 = True
+    force0 = False
+    verbose0 = False
+    while True:
+        a0 = user_args[0]
+        if a0 == '-f' or a0 == '--force':
+            force0 = True
+        elif a0 == '-v' or a0 == '--verbose':
+            verbose0 = True
+        else:
+            break
         user_args = user_args[1:]
-    else:
-        force0 = False
     if len(user_args) == 5:
         nshell0 = int(user_args[0])
         ncomponent0 = int(user_args[1])
@@ -878,7 +885,7 @@ if __name__ == "__main__":
         do_all_calculations(
             arange=[amin], zrange=[zmin],
             nshell=nshell0, n_component=ncomponent0,
-            formalism=formalism0, force=force0
+            formalism=formalism0, force=force0, verbose=verbose0
         )
     elif len(user_args) == 6:
         nshell0 = int(user_args[0])
@@ -888,7 +895,7 @@ if __name__ == "__main__":
         do_all_calculations(
             arange=range(amin, amax+1), zrange=[zmin],
             nshell=nshell0, n_component=ncomponent0,
-            formalism=formalism0, force=force0
+            formalism=formalism0, force=force0, verbose=verbose0
         )
     elif len(user_args) == 7:
         nshell0 = int(user_args[0])
@@ -898,7 +905,7 @@ if __name__ == "__main__":
         do_all_calculations(
             arange=range(amin, amax+1), zrange=range(zmin, zmax+1),
             nshell=nshell0, n_component=ncomponent0,
-            formalism=formalism0, force=force0
+            formalism=formalism0, force=force0, verbose=verbose0
         )
     else:
         print ('User entered %d arguments. ' % (len(user_args),) +
