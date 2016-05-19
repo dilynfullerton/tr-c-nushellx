@@ -17,4 +17,4 @@ rsync -Hrl \
   --include="*.int" \
   --include="*.ans" \
   --exclude="*" \
-  $from $to;
+  ${from} ${to};
