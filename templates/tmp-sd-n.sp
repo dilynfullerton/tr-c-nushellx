@@ -1,4 +1,5 @@
-! modelspace for IMSRG interaction
+! tmp-sd-n.sp
+! Template model space for sd-shell with neutron-only formalism
 <<FORMALISM>>
 16 8
 3

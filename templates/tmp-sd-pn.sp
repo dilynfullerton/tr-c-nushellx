@@ -1,4 +1,5 @@
-! modelspace for IMSRG interaction
+! tmp-sd-pn.sp
+! Template model space for sd-shell with proton-neutron formalism
 <<FORMALISM>>
 16 8
 6
