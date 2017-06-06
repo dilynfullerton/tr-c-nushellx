@@ -16,7 +16,7 @@ cd ${PBS_O_WORKDIR}
 # python shell_calc.py 1 1 t 4 14 2
 
 # lithium
-python shell_calc.py 1 1 t 6 16 3
+python shell_calc.py 1 2 t 6 16 3
 
 # n=z
 # python shell_calc.py 1 1 t 4 16 2 8
