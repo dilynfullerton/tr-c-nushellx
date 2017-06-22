@@ -1,5 +1,4 @@
-! tmp-p-pn.sp
-! Template model space for p-shell with proton-neutron formalism
+! ppn.sp
 <<FORMALISM>>
 4 2
 4

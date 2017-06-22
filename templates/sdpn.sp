@@ -1,5 +1,4 @@
-! tmp-sd-pn.sp
-! Template model space for sd-shell with proton-neutron formalism
+! sdpn.sp
 <<FORMALISM>>
 16 8
 6

@@ -1,5 +1,4 @@
-! tmp-sd-n.sp
-! Template model space for sd-shell with neutron-only formalism
+! sdn.sp
 <<FORMALISM>>
 16 8
 3
