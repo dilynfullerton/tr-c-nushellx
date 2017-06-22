@@ -845,14 +845,15 @@ def do_all_calculations(
             dpath_templates=dpath_templates,
             force=force,
         )
-        make_usdb_dir(
-            a_range=arange0, z=z, nshell=nshell,
-            jmin_even=jmin_even, jmax_even=jmax_even,
-            jmin_odd=jmin_odd, jmax_odd=jmax_odd,
-            dpath_results=dpath_results,
-            dpath_templates=dpath_templates,
-            force=force,
-        )
+        if nshell == 2:
+            make_usdb_dir(
+                a_range=arange0, z=z, nshell=nshell,
+                jmin_even=jmin_even, jmax_even=jmax_even,
+                jmin_odd=jmin_odd, jmax_odd=jmax_odd,
+                dpath_results=dpath_results,
+                dpath_templates=dpath_templates,
+                force=force,
+            )
         remove_empty_directories(dpath_results, remove_root=False)
         do_calculations(
             a_range=arange0, z=z, force=force, dpath_results=dpath_results,
