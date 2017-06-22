@@ -1,12 +1,11 @@
-! pn.sp
-pn
+! tmp-p-n.sp
+! Template model space for p-shell with neutron-only formalism
+<<FORMALISM>>
 4 2
 2
 1 2
 1 1 1 1
 2 1 1 3
-3 1 1 1
-4 1 1 3
 
 this line and after is the old sps input no longer used
  12   4   2  4   2  4    2  2  2    4    2
