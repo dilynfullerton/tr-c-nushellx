@@ -68,11 +68,10 @@ DNAME_FMT_Z = 'Z%d'
 DNAME_USDB = 'usdb'
 
 # file names
-FNAME_MODEL_SPACE_P_N = 'tmp-p-n'
-FNAME_MODEL_SPACE_P_PN = 'tmp-p-pn'
-FNAME_MODEL_SPACE_SD_N = 'tmp-sd-n'
-FNAME_MODEL_SPACE_SD_PN = 'tmp-sd-pn'
-FNAME_MODEL_SPACE_OUT = 'aaa'
+FNAME_MODEL_SPACE_P_N = 'pn'
+FNAME_MODEL_SPACE_P_PN = 'ppn'
+FNAME_MODEL_SPACE_SD_N = 'sdn'
+FNAME_MODEL_SPACE_SD_PN = 'sdpn'
 FNAME_MODEL_SPACE_USDB = 'sd'
 _FNAME_STDOUT_SHELL = '__stdout_shell__.txt'
 _FNAME_STDERR_SHELL = '__stderr_shell__.txt'
@@ -298,7 +297,6 @@ def make_results_dir(
         dpath_results=DPATH_RESULTS,
         dpath_templates=DPATH_TEMPLATES,
         _dname_fmt_z=DNAME_FMT_Z,
-        _fname_model_space_out=FNAME_MODEL_SPACE_OUT,
         _regex_int=_RGX_FNAME_INT,
         force=False
 ):
@@ -327,7 +325,6 @@ def make_results_dir(
     are housed
     :param _dname_fmt_z: results subdirectory name template that takes the
     proton number (and integer) as its sole argument
-    :param _fname_model_space_out: name of the model space file to write
     :param _regex_int: regular expression that matches interaction files
     :param force: If true, force making of .ans file, even if one
     already exists
@@ -371,7 +368,7 @@ def make_results_dir(
             fname_model_space = _get_model_space(
                 a=mass_num, n_component=ncomponent)
             fname_sp_src = '%s.sp' % fname_model_space
-            fname_sp_dst = '%s.sp' % _fname_model_space_out
+            fname_sp_dst = '%s.sp' % fname_model_space
             fpath_sp_src = path.join(dpath_templates, fname_sp_src)
             fpath_sp_dst = path.join(new_dir, fname_sp_dst)
             if force or not path.exists(fpath_sp_dst):
@@ -388,7 +385,7 @@ def make_results_dir(
                     parity = _get_parity(a=mass_num, nshell=nshell)
                 _make_ans_file(
                     file_path=fpath_ans,
-                    sp_file=_fname_model_space_out,
+                    sp_file=fname_model_space,
                     interaction_name=interaction_name,
                     option='lpe', neig=0, restriction='n',
                     num_protons=z, num_nucleons=mass_num,
